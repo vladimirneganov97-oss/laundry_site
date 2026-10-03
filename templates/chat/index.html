@@ -1,0 +1,50 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="card chat-page" data-side-chat-content>
+    <div class="chat-page-head">
+        <div>
+            <div class="section-label">ЧАТ</div>
+            <h1>💬 Связь с админом (старостой)</h1>
+            <p>Здесь можно задать вопрос администратору и получить ответ прямо на сайте.</p>
+        </div>
+    </div>
+
+    {% if error %}
+        <div class="notice error">{{ error }}</div>
+    {% endif %}
+
+    {% if need_key %}
+        <form action="/Chat/Index" method="get" class="chat-key-form">
+            <label>Ключ регистрации<input name="key" required maxlength="32" autocomplete="off" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" /></label>
+            <button class="button" type="submit">Открыть чат</button>
+        </form>
+    {% else %}
+        {% if reg_request and reg_request.Status == "Pending" %}
+            <div class="notice">Ваша заявка ещё ожидает подтверждения администратора. Здесь можно написать ему.</div>
+        {% endif %}
+        {% if reg_request and reg_request.Status == "Rejected" %}
+            <div class="notice error">Заявка отклонена, но история переписки сохранена.</div>
+        {% endif %}
+
+        <div class="chat-messages" id="chat-messages">
+            {% if not messages %}
+                <div class="empty-state">Сообщений пока нет. Напишите администратору первым.</div>
+            {% endif %}
+            {% for message in messages %}
+                <div class="chat-message {{ message.SenderType|lower }}">
+                    <div class="chat-meta">{{ sender_label(message.SenderType, false) }} · {{ message.CreatedAt|localtime }}</div>
+                    <div class="chat-text">{{ message.Message }}</div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <form action="/Chat/Send" method="post" class="chat-send-form">
+            {% if chat_key %}
+                <input type="hidden" name="key" value="{{ chat_key }}" />
+            {% endif %}
+            <textarea name="message" maxlength="2000" rows="3" placeholder="Напишите сообщение администратору..." required></textarea>
+            <button class="button" type="submit">Отправить сообщение</button>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "layout.html" %}
+{% block content %}
+{% set days = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"] %}
+<div class="hero">
+    <div>
+        <h1>График стирки</h1>
+        <p>Стирки идут с 08:00 до 03:00. Между каждой стиркой — час перерыва.</p>
+    </div>
+    {% if not user_name %}
+        <a class="button" href="/Account/Login">Войти в аккаунт</a>
+    {% endif %}
+</div>
+
+{% if new_account_id %}
+    <div class="notice"><b>Ваш ID аккаунта:</b> <code>{{ new_account_id }}</code>. Сохраните его для входа.</div>
+{% endif %}
+{% if error %}
+    <div class="notice error"><b>Ограничение:</b> {{ error }}</div>
+{% endif %}
+
+<div class="notice">
+    <b>Правила:</b> одна стирка длится 3 часа, затем час перерыв. Один пользователь может забронировать
+    <b>не более {{ weekly_limit }} стирок в неделю</b>.
+    {% if user_name %}
+        <span> Вы использовали <b>{{ weekly_bookings }} из {{ weekly_limit }}</b> записей на этой неделе.</span>
+    {% endif %}
+</div>
+
+<div class="home-columns">
+<div class="schedule">
+{% for day in days %}
+    <section class="day">
+        <h2>{{ day }}</h2>
+        {% for slot in slots if slot.Day == day %}
+            <div class="slot">
+                <div><b>{{ slot.Time }}</b></div>
+                {% if slot.Status != "Свободно" %}
+                    <span class="slot-status status-blocked">{{ slot.Status }}</span>
+                {% elif not slot.ReservedBy or not slot.ReservationWeekStart or slot.ReservationWeekStart.date() != week_start.date() %}
+                    <span class="slot-status free">Свободно</span>
+                    {% if user_name %}
+                        {% if weekly_bookings < weekly_limit %}
+                            <form action="/Home/Reserve" method="post">
+                                <input type="hidden" name="id" value="{{ slot.Id }}" />
+                                <button class="small">Занять</button>
+                            </form>
+                        {% else %}
+                            <span class="muted">Лимит {{ weekly_bookings }}/{{ weekly_limit }}</span>
+                        {% endif %}
+                    {% endif %}
+                {% else %}
+                    <span class="slot-status busy">Занято: {{ slot.ReservedBy }}</span>
+                    {% if slot.ReservedByUserId == request.session.get('UserId') %}
+                        <form action="/Home/Cancel" method="post">
+                            <input type="hidden" name="id" value="{{ slot.Id }}" />
+                            <button class="small danger">Освободить</button>
+                        </form>
+                    {% endif %}
+                {% endif %}
+            </div>
+        {% endfor %}
+    </section>
+{% endfor %}
+</div>
+
+<div class="announcements" id="announcements-board">
+<h2>📢 Объявления</h2>
+{% for a in announcements %}
+ <article>
+  <p>{{ a.Text }}</p>
+  {% if a.ImagePath %}<img src="{{ a.ImagePath }}" style="max-width:100%;border-radius:10px;" />{% endif %}
+ </article>
+{% endfor %}
+</div>
+</div>
+{% endblock %}

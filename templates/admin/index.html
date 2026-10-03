@@ -1,0 +1,337 @@
+{% extends "layout.html" %}
+{% block content %}
+{% set current_bookings = slots|selectattr("ReservationWeekStart")|selectattr("ReservedBy")|list %}
+<div class="admin-shell">
+    <div class="admin-top">
+        <div>
+            <div class="admin-kicker">ПАНЕЛЬ УПРАВЛЕНИЯ</div>
+            <h1>Админ-панель</h1>
+            <p>Управление аккаунтами, недельным расписанием и текущими бронированиями.</p>
+        </div>
+        <a class="button admin-logout" href="/Admin/Logout">Выйти</a>
+    </div>
+
+    {% if admin_message %}
+        <div class="notice admin-notice">{{ admin_message }}</div>
+    {% endif %}
+
+    <div class="admin-tabs" role="tablist">
+        <button type="button" class="admin-tab {% if active_admin_tab == 'accounts' %}active{% endif %}" data-admin-tab="accounts">👤 <span>Зарегистрированные аккаунты</span></button>
+        <button type="button" class="admin-tab {% if active_admin_tab == 'schedule' %}active{% endif %}" data-admin-tab="schedule">📅 <span>Расписание на неделю</span></button>
+        <button type="button" class="admin-tab {% if active_admin_tab == 'bookings' %}active{% endif %}" data-admin-tab="bookings">🧺 <span>Текущее бронирование</span><b class="tab-badge">{{ current_bookings|length }}</b></button>
+        <button type="button" class="admin-tab {% if active_admin_tab == 'keys' %}active{% endif %}" data-admin-tab="keys">🔑 <span>Ключи регистрации</span><b class="tab-badge">{{ registration_keys|rejectattr('IsUsed')|list|length }}</b></button>
+        <button type="button" class="admin-tab {% if active_admin_tab == 'requests' %}active{% endif %}" data-admin-tab="requests">📝 <span>Заявки на регистрацию</span><b class="tab-badge">{{ registration_requests|length }}</b></button>
+        <button type="button" class="admin-tab {% if active_admin_tab == 'announcements' %}active{% endif %}" data-admin-tab="announcements">📢 <span>Объявления</span></button>
+        <button type="button" class="admin-tab" data-side-panel="admin-chat"{% if active_admin_tab == 'chat' %} data-auto-open-chat="1"{% endif %}>💬 <span>Связь с пользователями</span><b id="admin-chat-badge" class="tab-badge notification-badge"{% if unread_chat_count == 0 %} hidden{% endif %}>{{ unread_chat_count }}</b></button>
+    </div>
+
+    <section class="admin-panel {% if active_admin_tab == 'announcements' %}active{% endif %}" data-admin-panel="announcements">
+<div class="admin-section-head"><h2>📢 Управление объявлениями</h2></div>
+<form class="announcement-editor" action="/Admin/AddAnnouncement" method="post" enctype="multipart/form-data">
+<div class="announcement-input-row">
+    <label class="file-add-button" title="Добавить фото или файл">
+        +
+        <input id="announcementFile" type="file" name="image" accept="image/*,.pdf,.doc,.docx" />
+    </label>
+    <textarea name="text" placeholder="Напишите объявление..."></textarea>
+    <button class="announcement-send" type="submit" title="Опубликовать">➤</button>
+</div>
+<div id="fileStatus" class="attachment-indicator" style="display:none">📎 Файл или изображение выбрано</div>
+</form>
+
+<section class="admin-card announcements-board">
+<h2>📢 Доска объявлений</h2>
+{% for a in announcements %}
+<div class="notice">
+<b>{{ a.CreatedAt|localtime }}</b>
+<p>{{ a.Text }}</p>
+{% if a.ImagePath %}
+<div class="attachment-indicator">📎 Прикреплён файл или изображение</div>
+<img src="{{ a.ImagePath }}" style="max-width:300px" />
+<form action="/Admin/DeleteAnnouncement" method="post" style="margin-top:8px">
+    <input type="hidden" name="id" value="{{ a.Id }}" />
+    <button class="small danger" type="submit">Удалить</button>
+</form>
+{% endif %}
+</div>
+{% endfor %}
+</section>
+</section>
+
+<section class="admin-panel {% if active_admin_tab == 'accounts' %}active{% endif %}" data-admin-panel="accounts">
+        <div class="admin-section-head">
+            <div>
+                <div class="section-label">АККАУНТЫ</div>
+                <h2>Зарегистрированные аккаунты <span class="count-badge">{{ users|length }}</span></h2>
+                <p>Изменяйте недельный лимит, задавайте новый пароль или удаляйте аккаунты.</p>
+            </div>
+        </div>
+        <div class="admin-table-wrap">
+            <table class="admin-users-table">
+                <thead><tr><th>ID</th><th>Имя</th><th>Фамилия</th><th>Комната</th><th>Стирки</th><th>Лимит</th><th>Новый пароль</th><th>Дата регистрации</th><th>Действия</th></tr></thead>
+                <tbody>
+                {% for u in users %}
+                    {% set count = weekly_counts.get(u.Id, 0) %}
+                    <tr>
+                        <td><code>{{ u.PublicId }}</code></td>
+                        <td class="admin-name">{{ u.FirstName }}</td>
+                        <td class="admin-name">{{ u.LastName }}</td>
+                        <td class="admin-room">{{ u.RoomNumber }}</td>
+                        <td><strong>{{ count }}</strong></td>
+                        <td>
+                            <form action="/Admin/UpdateUserLimit" method="post" class="inline-form admin-mini-form">
+                                <input type="hidden" name="id" value="{{ u.Id }}" />
+                                <input name="weeklyBookingLimit" type="number" min="0" max="50" value="{{ u.WeeklyBookingLimit }}" />
+                                <button class="small white-button" type="submit">Сохранить</button>
+                            </form>
+                        </td>
+                        <td>
+                            <form action="/Admin/ResetUserPassword" method="post" class="admin-password-form">
+                                <input type="hidden" name="id" value="{{ u.Id }}" />
+                                <div class="password-field admin-password-field">
+                                    <input id="new-password-{{ u.Id }}" name="newPassword" type="password" minlength="8" placeholder="Новый пароль" required />
+                                    <button type="button" class="password-toggle eye-toggle" data-password-toggle="new-password-{{ u.Id }}" aria-label="Показать пароль" aria-pressed="false" title="Показать новый пароль"><span class="eye-icon">👁</span></button>
+                                </div>
+                                <button class="small white-button" type="submit">Сменить</button>
+                            </form>
+                        </td>
+                        <td>{{ u.CreatedAt|localtime }}</td>
+                        <td>
+                            <form action="/Admin/DeleteUser" method="post" onsubmit="return confirm('Удалить аккаунт и его бронирования?');">
+                                <input type="hidden" name="id" value="{{ u.Id }}" />
+                                <button class="small danger" type="submit">Удалить</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="admin-panel {% if active_admin_tab == 'schedule' %}active{% endif %}" data-admin-panel="schedule">
+        <div class="admin-section-head">
+            <div>
+                <div class="section-label">НЕДЕЛЯ</div>
+                <h2>Расписание стирок</h2>
+                <p>Каждый день содержит 5 стандартных окон: 08:00–11:00, 12:00–15:00, 16:00–19:00, 20:00–23:00 и 00:00–03:00.</p>
+            </div>
+        </div>
+
+        <div class="admin-week-list">
+        {% for day in days %}
+            {% set day_slots = slots|selectattr("Day", "equalto", day)|list %}
+            <section class="admin-day schedule-day">
+                <div class="admin-day-title">
+                    <div><span class="day-number">{{ loop.index }}</span><h3>{{ day }}</h3></div>
+                    <span class="day-count">{{ day_slots|length }} слотов</span>
+                </div>
+
+                <div class="admin-slot-list">
+                {% if not day_slots %}
+                    <div class="admin-empty-day">На этот день стирок пока нет.</div>
+                {% endif %}
+                {% for slot in day_slots %}
+                    <div class="admin-schedule-slot">
+                        <div class="admin-slot-time"><span>ВРЕМЯ</span><strong>{{ slot.Time }}</strong></div>
+                        <div class="admin-slot-editor">
+                            <form class="admin-slot-form" action="/Admin/UpdateSchedule" method="post">
+                                <input type="hidden" name="id" value="{{ slot.Id }}" />
+                                <input type="hidden" name="day" value="{{ day }}" />
+                                <label><span>Время</span><input name="time" value="{{ slot.Time }}" maxlength="30" required /></label>
+                                <label><span>Статус</span><select name="status">
+                                    {% for status in schedule_statuses %}
+                                        <option value="{{ status }}" {% if slot.Status == status %}selected{% endif %}>{{ status }}</option>
+                                    {% endfor %}
+                                </select></label>
+                                <div class="admin-booking-preview">
+                                    <span>БРОНИРОВАНИЕ</span>
+                                    <strong>{{ slot.ReservedBy or "Свободно" }}</strong>
+                                </div>
+                                <button type="submit" class="small white-button">Сохранить</button>
+                            </form>
+                            <form action="/Admin/DeleteSchedule" method="post" class="admin-delete-inline" onsubmit="return confirm('Удалить эту стирку из расписания?');">
+                                <input type="hidden" name="id" value="{{ slot.Id }}" />
+                                <button class="small danger" type="submit">Удалить</button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+                </div>
+
+                <form action="/Admin/AddSchedule" method="post" class="admin-add-slot">
+                    <input type="hidden" name="day" value="{{ day }}" />
+                    <label><span>Новое время</span><input name="time" maxlength="30" placeholder="например, 08:00–11:00" required /></label>
+                    <label><span>Статус</span><select name="status">{% for status in schedule_statuses %}<option value="{{ status }}">{{ status }}</option>{% endfor %}</select></label>
+                    <button class="small white-button" type="submit">＋ Добавить стирку</button>
+                </form>
+            </section>
+        {% endfor %}
+        </div>
+    </section>
+
+    <section class="admin-panel {% if active_admin_tab == 'bookings' %}active{% endif %}" data-admin-panel="bookings">
+        <div class="admin-section-head">
+            <div>
+                <div class="section-label">БРОНИРОВАНИЯ</div>
+                <h2>Текущее бронирование <span class="count-badge">{{ current_bookings|length }}</span></h2>
+                <p>Здесь отображаются занятые слоты текущей недели. Администратор может освободить любой слот.</p>
+            </div>
+        </div>
+        <div class="booking-list">
+        {% if not current_bookings %}
+            <div class="empty-state">Сейчас нет активных бронирований.</div>
+        {% endif %}
+        {% for s in current_bookings %}
+            <div class="booking-card">
+                <div class="booking-day">{{ s.Day }}</div>
+                <div class="booking-time">{{ s.Time }}</div>
+                <div class="booking-user"><span>Занял</span><strong>{{ s.ReservedBy }}</strong></div>
+                <form action="/Admin/ClearReservation" method="post">
+                    <input type="hidden" name="id" value="{{ s.Id }}" />
+                    <button class="small danger" type="submit">Освободить</button>
+                </form>
+            </div>
+        {% endfor %}
+        </div>
+    </section>
+
+    <section class="admin-panel {% if active_admin_tab == 'keys' %}active{% endif %}" data-admin-panel="keys">
+        <div class="admin-section-head">
+            <div>
+                <div class="section-label">КЛЮЧИ</div>
+                <h2>Ключи регистрации <span class="count-badge">{{ registration_keys|length }}</span></h2>
+                <p>Ключ нужен для отправки регистрации. Свободный ключ можно использовать только для одной активной заявки; после подтверждения он становится использованным.</p>
+            </div>
+        </div>
+
+        <div class="admin-add-slot" style="margin-bottom:16px">
+            <form action="/Admin/AddRegistrationKeys" method="post" class="inline-form">
+                <label><span>Добавить ключей</span><input name="count" type="number" min="1" max="500" value="10" /></label>
+                <button class="small white-button" type="submit">＋ Добавить ключи</button>
+            </form>
+        </div>
+
+        <div class="admin-table-wrap">
+            <table class="admin-users-table">
+                <thead><tr><th>№</th><th>Ключ</th><th>Статус</th><th>Создан</th><th>Использован</th></tr></thead>
+                <tbody>
+                {% for key in registration_keys %}
+                    {% set pending = key.UsedByRequestId and registration_requests|selectattr("Id", "equalto", key.UsedByRequestId)|list %}
+                    <tr>
+                        <td>{{ key.Id }}</td>
+                        <td><code>{{ key.Key }}</code></td>
+                        <td>
+                            {% if not key.IsUsed %}
+                                <span>Свободен</span>
+                            {% elif pending %}
+                                <span>Ожидает подтверждения</span>
+                            {% else %}
+                                <span>Использован</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ key.CreatedAt|localtime }}</td>
+                        <td>{{ key.UsedAt|localtime }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="admin-panel {% if active_admin_tab == 'requests' %}active{% endif %}" data-admin-panel="requests">
+        <div class="admin-section-head">
+            <div>
+                <div class="section-label">ПОДТВЕРЖДЕНИЕ</div>
+                <h2>Заявки на регистрацию <span class="count-badge">{{ registration_requests|length }}</span></h2>
+                <p>Проверьте данные пользователя и подтвердите или отклоните регистрацию.</p>
+            </div>
+        </div>
+
+        <div class="booking-list">
+        {% if not registration_requests %}
+            <div class="empty-state">Новых заявок на регистрацию нет.</div>
+        {% endif %}
+        {% for req in registration_requests %}
+            <div class="booking-card">
+                <div class="booking-user"><span>Имя и фамилия</span><strong>{{ req.FirstName }} {{ req.LastName }}</strong></div>
+                <div class="booking-user"><span>Комната</span><strong>{{ req.RoomNumber }}</strong></div>
+                <div class="booking-user"><span>Ключ</span><strong><code>{{ req.RegistrationKey.Key if req.RegistrationKey else "" }}</code></strong></div>
+                <div class="booking-user"><span>Отправлено</span><strong>{{ req.CreatedAt|localtime }}</strong></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <form action="/Admin/ApproveRegistration" method="post">
+                        <input type="hidden" name="id" value="{{ req.Id }}" />
+                        <button class="small white-button" type="submit">Подтвердить</button>
+                    </form>
+                    <form action="/Admin/RejectRegistration" method="post" onsubmit="return confirm('Отклонить эту заявку? Ключ снова станет свободным.');">
+                        <input type="hidden" name="id" value="{{ req.Id }}" />
+                        <button class="small danger" type="submit">Отклонить</button>
+                    </form>
+                </div>
+            </div>
+        {% endfor %}
+        </div>
+    </section>
+
+    <section class="admin-panel admin-chat-fallback" data-admin-panel="chat">
+        <div class="admin-section-head">
+            <div>
+                <div class="section-label">СВЯЗЬ</div>
+                <h2>Связь с пользователями <span class="count-badge">{{ chat_messages|length }}</span></h2>
+                <p>Здесь можно читать сообщения пользователей и отвечать им. Красный счётчик показывает новые сообщения.</p>
+            </div>
+        </div>
+
+        <div class="chat-admin-list">
+        {% if not chat_messages %}
+            <div class="empty-state">Сообщений пока нет.</div>
+        {% endif %}
+        {% for thread_key, group in chat_threads.items() %}
+            {% set first = group[0] %}
+            {% set req = first.RegistrationRequest %}
+            {% if not req %}
+                {% for r in registration_requests if r.Id == thread_key[1] %}
+                    {% set req = r %}
+                {% endfor %}
+            {% endif %}
+            {% set user = first.User %}
+            {% if not user %}
+                {% for u in users if u.Id == thread_key[0] %}
+                    {% set user = u %}
+                {% endfor %}
+            {% endif %}
+            {% if user %}
+                {% set title = user.FirstName ~ " " ~ user.LastName ~ " · комната " ~ user.RoomNumber %}
+            {% elif req %}
+                {% set title = "Заявка #" ~ req.Id ~ " · " ~ req.FirstName ~ " " ~ req.LastName ~ " · комната " ~ req.RoomNumber %}
+            {% else %}
+                {% set title = "Пользователь" %}
+            {% endif %}
+            <div class="chat-thread">
+                <div class="chat-thread-head"><strong>{{ title }}</strong><span>{{ group|length }} сообщений</span></div>
+                <div class="chat-messages admin-chat-messages">
+                {% for message in group %}
+                    <div class="chat-message {{ message.SenderType|lower }} {% if message.IsRead %}read{% else %}unread{% endif %}">
+                        <div class="chat-meta">{{ sender_label(message.SenderType, true) }} · {{ message.CreatedAt|localtime }}</div>
+                        <div class="chat-text">{{ message.Message }}</div>
+                        {% if message.SenderType == "User" and not message.IsRead %}
+                            <form action="/Admin/MarkChatRead" method="post" class="chat-read-form">
+                                <input type="hidden" name="id" value="{{ message.Id }}" />
+                                <button class="small" type="submit">Отметить прочитанным</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+                </div>
+                <form action="/Admin/ReplyToUser" method="post" class="chat-reply-form">
+                    <input type="hidden" name="userId" value="{{ user.Id if user else '' }}" />
+                    <input type="hidden" name="requestId" value="{{ req.Id if req else '' }}" />
+                    <textarea name="message" maxlength="2000" rows="2" placeholder="Написать пользователю..." required></textarea>
+                    <button class="small" type="submit">Ответить</button>
+                </form>
+            </div>
+        {% endfor %}
+        </div>
+    </section>
+</div>
+{% endblock %}

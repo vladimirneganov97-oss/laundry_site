@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="card form-card">
+    <h1>Регистрация по ключу</h1>
+    <p>Введите данные и действующий ключ регистрации. После отправки заявку должен подтвердить администратор.</p>
+    {% if registration_pending %}
+        <div class="notice">{{ registration_pending }}</div>
+        <button type="button" class="small white-button login-chat-button" data-side-panel="user-chat">💬 Связаться с админом</button>
+    {% endif %}
+    <form action="/Account/Register" method="post">
+        {% if errors %}
+            <div class="error">{% for e in errors %}<div>{{ e }}</div>{% endfor %}</div>
+        {% endif %}
+        <label>Имя<input name="firstName" required maxlength="30" autocomplete="given-name" pattern="[A-Za-zА-Яа-яЁё]+" title="Только буквы, максимум 30 символов" data-letters-only /></label>
+        <label>Фамилия<input name="lastName" required maxlength="30" autocomplete="family-name" pattern="[A-Za-zА-Яа-яЁё]+" title="Только буквы, максимум 30 символов" data-letters-only /></label>
+        <label>Номер комнаты<input name="roomNumber" required type="number" min="1" max="1000" step="1" inputmode="numeric" /></label>
+        <label>Пароль<div class="password-field"><input id="register-password" name="password" type="password" minlength="8" required autocomplete="new-password" /><button type="button" class="password-toggle eye-toggle" data-password-toggle="register-password" aria-label="Показать пароль" aria-pressed="false" title="Показать пароль"><span class="eye-icon" aria-hidden="true">👁</span></button></div></label>
+        <label>Повторите пароль<div class="password-field"><input id="register-password-confirm" name="passwordConfirm" type="password" minlength="8" required autocomplete="new-password" /><button type="button" class="password-toggle eye-toggle" data-password-toggle="register-password-confirm" aria-label="Показать пароль" aria-pressed="false" title="Показать пароль"><span class="eye-icon" aria-hidden="true">👁</span></button></div></label>
+        <label>Ключ регистрации<input name="registrationKey" required maxlength="32" autocomplete="off" autocapitalize="characters" placeholder="XXXX-XXXX-XXXX-XXXX" /></label>
+        <button class="button" type="submit">Отправить заявку</button>
+    </form>
+    <hr />
+    <h2>Проверить заявку</h2>
+    {% if status %}
+        <div class="notice">{{ status }}</div>
+    {% endif %}
+    <form action="/Account/CheckRegistrationStatus" method="post">
+        <label>Ключ регистрации<input name="registrationKey" required maxlength="32" autocomplete="off" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX" /></label>
+        <button class="small white-button" type="submit">Проверить статус</button>
+    </form>
+    <p>Уже есть подтверждённый аккаунт? <a href="/Account/Login">Войти</a></p>
+</div>
+{% endblock %}

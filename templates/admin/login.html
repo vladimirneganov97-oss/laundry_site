@@ -1,0 +1,14 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="card form-card">
+    <h1>Вход в админку</h1>
+    <p>Пароль администратора задаётся через переменную <code>LAUNDRY_ADMIN_PASSWORD</code>.</p>
+    {% if error %}<div class="error">{{ error }}</div>{% endif %}
+    <form method="post" action="/Admin/Login">
+        <label>Пароль<div class="password-field"><input id="admin-login-password" name="password" type="password" required autocomplete="current-password" /><button type="button" class="password-toggle eye-toggle" data-password-toggle="admin-login-password" aria-label="Показать пароль" aria-pressed="false" title="Показать пароль">
+    <span class="eye-icon" aria-hidden="true">👁</span>
+</button></div></label>
+        <button class="button">Войти</button>
+    </form>
+</div>
+{% endblock %}
