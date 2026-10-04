@@ -63,6 +63,44 @@
     }
 }
 
+.history-filter{display:flex;align-items:end;flex-wrap:wrap;gap:12px;margin:16px 0}
+.history-filter label{display:grid;gap:6px;min-width:min(220px,100%);flex:1}
+.history-filter input,.history-filter select,.history-filter button{min-height:40px}
+.table-wrap{max-width:100%;overflow-x:auto}
+.table-wrap table{min-width:640px}
+.statistics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px}
+.statistics-grid .notice{margin:0}
+.statistics-grid .notice div{font-size:24px;font-weight:700;margin-top:6px}
+.statistics-bars{display:grid;gap:7px;margin:12px 0 24px}
+.statistics-bar-row{display:grid;grid-template-columns:64px minmax(0,1fr) 32px;align-items:center;gap:10px;font-size:13px}
+.statistics-bar{height:12px;background:rgba(127,160,184,.18);border-radius:2px;overflow:hidden}
+.statistics-bar i{display:block;height:100%;min-width:2px;background:#3bbd91}
+.notice-row,.admin-quick-links{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.notice-row{padding:8px 0;border-top:1px solid rgba(127,160,184,.2)}
+.notice-row form{margin:0}
+.admin-quick-links{justify-content:flex-start;margin:12px 0}
+.admin-quick-links{
+    grid-column:1 !important;
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+    gap:10px;
+    margin:0;
+    padding:14px;
+    background:rgba(20,25,35,.96);
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:18px;
+    box-shadow:0 12px 35px rgba(0,0,0,.18);
+}
+.admin-quick-links .admin-quick-link{
+    flex:none;
+    min-height:52px;
+    text-decoration:none;
+}
+.slot select{max-width:100%;min-width:0;padding:7px;border:1px solid #ccd3da;border-radius:6px}
+button:disabled,input:disabled,fieldset:disabled{opacity:.65;cursor:not-allowed}
+@media(max-width:600px){.statistics-bar-row{grid-template-columns:52px minmax(0,1fr) 26px;gap:6px}.history-filter label{min-width:100%}.notice-row{align-items:flex-start}}
+
 
 /* Weekly schedule editor in the admin panel */
 .schedule-admin-heading{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:16px}
@@ -150,6 +188,14 @@ table{color:#edf6ff}th,td{border-bottom-color:rgba(255,255,255,.1)}
 code{background:rgba(255,255,255,.1);color:#fff}
 .form-card input,.form-card select,.card table input,.card table select{
     background:#081d31;color:#fff;border-color:rgba(255,255,255,.18)
+}
+.form-card input,.form-card select{
+    width:100%;
+    min-height:44px;
+    padding:11px;
+    border-radius:8px;
+    font-size:16px;
+    line-height:20px;
 }
 
 /* Admin */
@@ -470,9 +516,16 @@ input[type="button"] * {
 .chat-message{padding:12px 14px;border:1px solid rgba(91,159,211,.18);border-radius:12px;max-width:85%;background:#071e34}
 .chat-message.user{align-self:flex-end;background:#0b3150}
 .chat-message.admin{align-self:flex-start;background:#0a2944}
+.chat-message.warden{align-self:flex-start;background:#0a2944;border-color:rgba(59,189,145,.42)}
 .chat-message.system{align-self:center;background:#10283a;max-width:95%}
 .chat-meta{font-size:12px;color:#8fb0c8;margin-bottom:5px}
 .chat-text{white-space:pre-wrap;overflow-wrap:anywhere;color:#eef7ff}
+.account-id-card{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin:10px 0;padding:12px;background:#031426;border:1px solid rgba(91,159,211,.45);border-radius:10px}
+.account-id-label{font-size:12px;color:#8fb0c8}
+.account-id-card code{font-size:18px;font-weight:700;letter-spacing:.08em;color:#eef7ff;background:#0b3150;padding:8px 12px;border-radius:7px}
+.account-id-actions{display:flex;flex-direction:column;align-items:stretch;gap:7px;width:min(100%,260px)}
+.account-id-actions button,.account-id-actions a{text-align:center}
+.account-id-copy-status{min-height:16px;font-size:12px;color:#8fb0c8}
 .chat-send-form,.chat-key-form{display:flex;gap:10px;align-items:flex-end;margin-top:14px}
 .chat-send-form textarea,.chat-key-form input,.chat-reply-form textarea{flex:1;background:#031426!important;color:#f2f8fd!important;border:1px solid rgba(91,159,211,.25)!important;border-radius:8px;padding:11px;resize:vertical;font:inherit}
 .chat-thread{padding:16px;margin-bottom:16px;background:linear-gradient(145deg,#071e34,#041426);border:1px solid rgba(91,159,211,.18);border-radius:14px}
@@ -800,6 +853,48 @@ body.side-panel-open .side-drawer{
     display:block !important;
 }
 
+.admin-panel[data-admin-panel="keys"] .key-type-filter{
+    display:grid;
+    flex:1;
+    min-width:min(220px,100%);
+    gap:6px;
+    color:#86a9c3;
+    font-weight:700;
+}
+.admin-panel[data-admin-panel="keys"] .key-type-options{
+    display:flex;
+    min-height:40px;
+    gap:6px;
+}
+.admin-panel[data-admin-panel="keys"] .key-type-option{
+    display:inline-flex;
+    flex:1;
+    align-items:center;
+    justify-content:center;
+    min-width:0;
+    min-height:40px;
+    padding:7px 10px;
+    border:1px solid rgba(91,159,211,.24);
+    border-radius:9px;
+    background:#031426;
+    color:#eef8ff;
+    font-size:12px;
+    font-weight:700;
+    line-height:1.2;
+    text-decoration:none;
+    white-space:nowrap;
+}
+.admin-panel[data-admin-panel="keys"] .key-type-option:hover{
+    background:#0b2d4d;
+    color:#fff;
+}
+.admin-panel[data-admin-panel="keys"] .key-type-option.active{
+    border-color:#d7ecff;
+    background:#d7ecff;
+    color:#06203a;
+    margin-right:0 !important;
+}
+
 /* The chat fallback remains hidden on the actual admin page. */
 #site-main > .admin-shell > .admin-chat-fallback{
     display:none !important;
@@ -822,9 +917,8 @@ body.side-panel-open .side-drawer{
     :root{--chat-drawer-width:94vw}
     body.side-panel-open .site-main,
     body.side-panel-open header .wrap,
-    body.side-panel-open footer{
-        width:100% !important;
-        margin-right:0 !important;
+    body.side-panel-open footer {
+        width: 100% !important;
     }
     .admin-shell{
         display:block !important;
@@ -1090,6 +1184,167 @@ body.side-panel-open .side-drawer{
 .home-columns{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:20px;align-items:stretch}.announcements{background:#06233d;border:1px solid #123d60;border-radius:16px;padding:18px;color:#fff;min-height:100%;}.announcements h2{color:#fff;margin-top:0}.announcements article{background:#0b2d4d;border:1px solid #174a70;border-radius:12px;padding:14px;margin-bottom:14px;color:#dbeafe}.announcements img{margin-top:10px}.admin-schedule-slot{display:grid;grid-template-columns:190px 1fr;gap:16px;align-items:stretch}.admin-slot-editor{min-width:0;display:flex;align-items:center;gap:10px}.admin-slot-form{flex:1;display:grid;grid-template-columns:1fr 1fr 180px auto;gap:10px;align-items:end;min-width:0}.admin-delete-inline{flex:0 0 auto}.admin-slot-editor .small{white-space:nowrap}.admin-schedule-slot input,.admin-schedule-slot select{max-width:100%;min-width:0}@media(max-width:900px){.home-columns{grid-template-columns:1fr}.admin-schedule-slot{grid-template-columns:1fr}.admin-slot-form{grid-template-columns:1fr}.admin-slot-editor{flex-direction:column;align-items:stretch}}
 .admin-card.announcements-board{background:#061d33;color:#fff;border:1px solid #16466d}.attachment-indicator{margin-top:8px;padding:8px;border-radius:8px;background:#123a5b;color:#d8ecff}
 
+.announcement-editor {
+    display: grid;
+    gap: 20px;
+    max-width: 820px;
+    padding: 22px;
+    border: 1px solid rgba(91,159,211,.2);
+    border-radius: 16px;
+    background: #071e34;
+    box-shadow: 0 8px 24px rgba(0,0,0,.18);
+}
+
+.announcement-field {
+    display: grid;
+    gap: 9px;
+    min-width: 0;
+    color: #dbeafe;
+    font-weight: 600;
+}
+
+.announcement-field > input,
+.announcement-textbox > textarea {
+    width: 100%;
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid rgba(129,175,211,.35);
+    border-radius: 10px;
+    background: #031426;
+    color: #f2f8fd;
+    font: inherit;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,.16);
+}
+
+.announcement-textbox > textarea {
+    min-height: 130px;
+    resize: vertical;
+}
+
+.announcement-field > input:focus,
+.announcement-textbox > textarea:focus {
+    outline: 2px solid rgba(77,157,219,.4);
+    border-color: #4e9bd3;
+}
+
+.announcement-textbox {
+    position: relative;
+}
+
+.file-add-button {
+    width: 44px;
+    height: 44px;
+    border: 0;
+    padding: 0;
+}
+
+.announcement-textbox > textarea {
+    display: block;
+    padding: 14px 14px 14px 68px;
+}
+
+.announcement-textbox .file-add-button {
+    position: absolute;
+    left: 12px;
+    top: 12px;
+}
+
+.announcement-textbox .attachment-indicator {
+    position: absolute;
+    left: 66px;
+    top: 24px;
+    max-width: calc(100% - 124px);
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.announcement-textbox .attachment-indicator[hidden] {
+    display: none;
+}
+
+.announcement-category-field {
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.announcement-category-field legend {
+    margin-bottom: 10px;
+    color: #dbeafe;
+    font-weight: 600;
+}
+
+.announcement-category-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.announcement-category-option {
+    position: relative;
+    cursor: pointer;
+}
+
+.announcement-category-option input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+.announcement-category-option span {
+    display: inline-flex;
+    min-height: 40px;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 14px;
+    border: 1px solid rgba(129,175,211,.35);
+    border-radius: 999px;
+    background: #0b2d4d;
+    color: #dbeafe;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+
+.announcement-category-option input:checked + span {
+    border-color: #56a9f5;
+    background: #1762a4;
+    color: #fff;
+}
+
+.announcement-category-option input:focus-visible + span {
+    outline: 2px solid #8ecbff;
+    outline-offset: 2px;
+}
+
+.announcement-submit {
+    justify-self: start;
+    min-height: 44px;
+    padding: 10px 20px;
+    border: 0;
+    border-radius: 9px;
+    background: #2674e8;
+    color: #fff;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.announcement-submit:hover {
+    background: #1d63ca;
+}
+
+@media (max-width: 600px) {
+    .announcement-editor {
+        padding: 16px;
+    }
+
+    .announcement-category-options {
+        gap: 8px;
+    }
+}
+
 
 /* Admin panel width and schedule visibility improvements */
 .admin-wrap,
@@ -1248,18 +1503,85 @@ body {
     max-width: none;
     margin: 16px auto;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+    grid-template-columns: minmax(0, 1fr);
     gap: 20px;
-    align-items: start;
+    align-items: stretch;
 }
 
 .home-columns .schedule {
     width: 100%;
 }
 
+.home-columns .schedule-announcements {
+    min-width: 0;
+    width: 100%;
+    background: #08243d;
+    border: 1px solid rgba(120,190,255,.18);
+    color: #e8f4ff;
+    border-radius: 16px;
+    padding: 18px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.25);
+}
+
+.home-columns .schedule-announcements h2 {
+    font-size: 20px;
+    margin: 0 0 14px;
+}
+
+.home-columns .schedule-announcements article {
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(229,233,237,.35);
+}
+
+.home-columns .schedule-announcements article:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+}
+
+.home-columns .schedule-announcements p {
+    margin: 0 0 8px;
+}
+
+.home-columns .schedule-announcements img {
+    display: block;
+    width: 100%;
+    max-height: 180px;
+    margin-top: 10px;
+    border-radius: 10px;
+    object-fit: cover;
+}
+
 .home-columns .day,
 .home-columns .slot {
     width: 100%;
+}
+
+.admin-shell > .admin-navigation {
+    grid-column: 1 !important;
+    grid-row: 3 !important;
+    position: sticky;
+    top: 20px;
+    align-self: start;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+}
+
+.admin-navigation > .admin-tabs {
+    position: static !important;
+    grid-column: auto !important;
+    grid-row: auto !important;
+}
+
+.admin-navigation > .admin-tabs .admin-tab {
+    flex: 0 0 auto !important;
+    min-height: 44px !important;
+    padding: 8px 12px !important;
+    font-size: 14px;
+}
+
+.admin-navigation > .admin-quick-links {
+    grid-column: auto !important;
+    margin-top: 12px;
 }
 
 @media (max-width: 1000px) {
@@ -1271,5 +1593,840 @@ body {
     .home-columns {
         grid-template-columns: 1fr;
         width: calc(100% - 20px);
+    }
+}
+
+@media (max-width: 700px) {
+    .admin-shell > .admin-navigation {
+        position: static;
+        grid-column: auto !important;
+        grid-row: auto !important;
+        max-height: none;
+        overflow: visible;
+    }
+}
+
+.admin-mobile-back {
+    display: none;
+}
+
+@media (max-width: 1000px) {
+    .admin-shell:not(.admin-section-open) > .admin-panel {
+        display: none !important;
+    }
+
+    .admin-shell.admin-section-open {
+        display: block !important;
+    }
+
+    .admin-shell.admin-section-open > .admin-navigation {
+        display: none !important;
+    }
+
+    .admin-shell.admin-section-open > .admin-panel.active {
+        display: block !important;
+        width: 100% !important;
+        grid-column: auto !important;
+        grid-row: auto !important;
+    }
+
+    .admin-shell.admin-section-open .admin-mobile-back {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 42px;
+        margin-bottom: 16px;
+        padding: 9px 14px;
+        border: 1px solid rgba(129,175,211,.35);
+        border-radius: 10px;
+        background: #0b2d4d;
+        color: #dbeafe;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+    }
+}
+
+.admin-panel[data-admin-panel="schedule"] .schedule-day {
+    padding: 24px;
+    border: 1px solid rgba(93,163,215,.16);
+    border-radius: 18px;
+    background: linear-gradient(145deg,#08243e,#06182b);
+    box-shadow: 0 18px 50px rgba(0,0,0,.3);
+}
+
+.admin-panel[data-admin-panel="schedule"] .admin-day-title h3 {
+    color: #fff !important;
+    font-size: 27px;
+}
+
+.schedule-day-date {
+    display: inline-block;
+    margin-left: 8px;
+    color: #86a9c3;
+    font-size: .65em;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.admin-panel[data-admin-panel="schedule"] .schedule-day-date,
+.warden-shell .schedule-day-date {
+    color: #fff;
+}
+
+.admin-panel[data-admin-panel="schedule"] .day-count {
+    background: rgba(255,255,255,.08);
+    color: #abc3d8;
+}
+
+.admin-panel[data-admin-panel="schedule"] .admin-schedule-slot {
+    grid-template-columns: 190px minmax(0,1fr);
+    min-height: 82px;
+    padding: 14px;
+    border: 1px solid rgba(93,163,215,.16);
+    border-radius: 14px;
+    background: linear-gradient(90deg,rgba(14,55,87,.65),rgba(7,31,52,.72));
+    color: #eaf6ff;
+    box-shadow: inset 0 1px rgba(255,255,255,.025);
+}
+
+.admin-panel[data-admin-panel="schedule"] .admin-slot-time,
+.admin-panel[data-admin-panel="schedule"] .admin-slot-editor {
+    background: transparent !important;
+}
+
+.admin-panel[data-admin-panel="schedule"] .admin-slot-form {
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+}
+
+.admin-panel[data-admin-panel="schedule"] .admin-delete-inline .small.danger,
+.admin-panel[data-admin-panel="schedule"] .admin-delete-inline .small.danger:hover {
+    border: 1px solid rgba(91,159,211,.24) !important;
+    border-radius: 9px;
+    background: #031426 !important;
+    color: #eef8ff !important;
+    box-shadow: none;
+}
+
+.admin-panel[data-admin-panel="schedule"] .admin-slot-time span,
+.admin-panel[data-admin-panel="schedule"] .admin-slot-form label span,
+.admin-panel[data-admin-panel="schedule"] .admin-booking-preview span {
+    color: #86a9c3 !important;
+}
+
+.admin-panel[data-admin-panel="schedule"] .admin-slot-time strong {
+    color: #fff !important;
+}
+
+.admin-panel[data-admin-panel="schedule"] .admin-booking-preview,
+.admin-panel[data-admin-panel="schedule"] .admin-booking-preview strong {
+    background: transparent !important;
+    color: #e9f6ff !important;
+}
+
+.admin-panel[data-admin-panel="schedule"] .admin-schedule-slot .admin-slot-form input,
+.admin-panel[data-admin-panel="schedule"] .admin-schedule-slot .admin-slot-form select {
+    border-color: rgba(91,159,211,.24) !important;
+    border-radius: 9px;
+    background: #031426 !important;
+    color: #eef8ff !important;
+}
+
+.admin-panel[data-admin-panel="schedule"] .admin-schedule-slot .admin-slot-form select option {
+    background: #031426;
+    color: #eef8ff;
+}
+
+.admin-panel[data-admin-panel="schedule"] .admin-empty-day {
+    border: 1px solid rgba(91,159,211,.1);
+    border-radius: 10px;
+    background: #061a2d;
+    color: #91adc2;
+}
+
+.schedule-change-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 12px;
+}
+
+.admin-panel[data-admin-panel="schedule"] .history-filter label {
+    color: #86a9c3;
+    font-weight: 700;
+}
+
+.admin-panel[data-admin-panel="schedule"] .history-filter select {
+    min-height: 40px;
+    padding: 8px 10px;
+    border: 1px solid rgba(91,159,211,.24);
+    border-radius: 9px;
+    background: #031426;
+    color: #eef8ff;
+}
+
+.admin-panel[data-admin-panel="schedule"] .history-filter select option {
+    background: #031426;
+    color: #eef8ff;
+}
+
+.schedule-default-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 12px 0;
+    padding: 12px 14px;
+    border: 1px solid rgba(91,159,211,.2);
+    border-radius: 10px;
+    background: #061a2d;
+}
+
+.schedule-default-form p {
+    flex: 1 1 300px;
+    margin: 0;
+    color: #a9c1d4;
+    font-size: 13px;
+}
+
+.schedule-machine-status {
+    display: grid;
+    gap: 6px;
+    min-width: min(260px, 100%);
+    color: #dbeafe;
+    font-weight: 700;
+}
+
+.schedule-machine-status select {
+    min-height: 40px;
+    padding: 8px 10px;
+    border: 1px solid rgba(91,159,211,.24);
+    border-radius: 9px;
+    background: #031426;
+    color: #eef8ff;
+}
+
+.schedule-apply-button {
+    min-height: 40px;
+    padding: 9px 16px;
+}
+
+.admin-panel[data-admin-panel="schedule"] .admin-slot-form {
+    grid-template-columns: minmax(120px,1fr) minmax(150px,1fr) minmax(140px,1.2fr);
+}
+
+.admin-panel[data-admin-panel="schedule"] .admin-add-slot {
+    grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+}
+
+.admin-panel[data-admin-panel="accounts"] button:not(.admin-mobile-back),
+.admin-panel[data-admin-panel="accounts"] a.small {
+    border: 1px solid rgba(91,159,211,.24) !important;
+    border-radius: 9px !important;
+    background: #031426 !important;
+    color: #eef8ff !important;
+    box-shadow: none !important;
+    text-decoration: none;
+    white-space: normal;
+}
+
+.admin-panel[data-admin-panel="accounts"] button:not(.admin-mobile-back):hover,
+.admin-panel[data-admin-panel="accounts"] a.small:hover {
+    background: #0b2d4d !important;
+    color: #fff !important;
+    transform: none;
+}
+
+.admin-panel[data-admin-panel="accounts"] .password-toggle {
+    width: 44px;
+    min-width: 44px;
+    min-height: 40px;
+    padding: 0;
+}
+
+.admin-panel[data-admin-panel="accounts"] .history-filter label {
+    color: #86a9c3;
+    font-weight: 700;
+}
+
+.admin-panel[data-admin-panel="accounts"] .history-filter input[name="q"] {
+    min-height: 40px;
+    padding: 8px 10px;
+    border: 1px solid rgba(91,159,211,.24);
+    border-radius: 9px;
+    background: #031426;
+    color: #eef8ff;
+}
+
+.admin-panel[data-admin-panel="accounts"] .history-filter input[name="q"]:focus {
+    border-color: rgba(91,159,211,.65);
+    outline: 2px solid rgba(91,159,211,.2);
+    outline-offset: 1px;
+}
+
+.admin-panel[data-admin-panel="accounts"] .history-filter input[name="q"]::placeholder {
+    color: #86a9c3;
+}
+
+.admin-panel[data-admin-panel="accounts"] {
+    container: accounts-panel / inline-size;
+}
+
+.admin-panel {
+    container: admin-panel / inline-size;
+}
+
+.admin-panel:not([data-admin-panel="accounts"]):not([data-admin-panel="schedule"]) button:not(.admin-mobile-back),
+.admin-panel:not([data-admin-panel="accounts"]):not([data-admin-panel="schedule"]) a.small {
+    border: 1px solid rgba(91,159,211,.24) !important;
+    border-radius: 9px !important;
+    background: #031426 !important;
+    color: #eef8ff !important;
+    box-shadow: none !important;
+    text-decoration: none;
+}
+
+.admin-panel:not([data-admin-panel="accounts"]):not([data-admin-panel="schedule"]) button:not(.admin-mobile-back):hover,
+.admin-panel:not([data-admin-panel="accounts"]):not([data-admin-panel="schedule"]) a.small:hover {
+    background: #0b2d4d !important;
+    color: #fff !important;
+    transform: none;
+}
+
+.admin-panel:not([data-admin-panel="accounts"]):not([data-admin-panel="schedule"]) input:not([type="radio"]):not([type="file"]),
+.admin-panel:not([data-admin-panel="accounts"]):not([data-admin-panel="schedule"]) select,
+.admin-panel:not([data-admin-panel="accounts"]):not([data-admin-panel="schedule"]) textarea {
+    border: 1px solid rgba(91,159,211,.24);
+    border-radius: 9px;
+    background: #031426;
+    color: #eef8ff;
+}
+
+.admin-panel:not([data-admin-panel="accounts"]):not([data-admin-panel="schedule"]) input::placeholder,
+.admin-panel:not([data-admin-panel="accounts"]):not([data-admin-panel="schedule"]) textarea::placeholder {
+    color: #86a9c3;
+}
+
+@container admin-panel (max-width: 1050px) {
+    .admin-panel[data-admin-panel="rooms"] .admin-add-slot,
+    .admin-panel[data-admin-panel="wardens"] .admin-add-slot,
+    .admin-panel[data-admin-panel="keys"] .admin-add-slot {
+        grid-template-columns: repeat(2, minmax(0,1fr));
+        align-items: end;
+    }
+
+    .admin-panel[data-admin-panel="rooms"] .admin-add-slot button,
+    .admin-panel[data-admin-panel="wardens"] .admin-add-slot button,
+    .admin-panel[data-admin-panel="keys"] .admin-add-slot button {
+        min-height: 40px;
+        max-width: 100%;
+        white-space: normal;
+    }
+
+    .admin-panel[data-admin-panel="bookings"] .booking-card,
+    .admin-panel[data-admin-panel="requests"] .booking-card {
+        grid-template-columns: repeat(2, minmax(0,1fr));
+        gap: 12px;
+        min-width: 0;
+    }
+
+    .admin-panel[data-admin-panel="bookings"] .booking-card > form,
+    .admin-panel[data-admin-panel="requests"] .booking-card > div[style] {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .admin-panel[data-admin-panel="bookings"] .booking-card > form button,
+    .admin-panel[data-admin-panel="requests"] .booking-card > div[style] button {
+        min-height: 40px;
+        max-width: 100%;
+    }
+
+    .admin-panel[data-admin-panel="rooms"] .admin-card-table,
+    .admin-panel[data-admin-panel="wardens"] .admin-card-table,
+    .admin-panel[data-admin-panel="keys"] .admin-card-table {
+        display: block;
+        min-width: 0;
+    }
+
+    .admin-panel[data-admin-panel="rooms"] .admin-card-table thead,
+    .admin-panel[data-admin-panel="wardens"] .admin-card-table thead,
+    .admin-panel[data-admin-panel="keys"] .admin-card-table thead {
+        display: none;
+    }
+
+    .admin-panel[data-admin-panel="rooms"] .admin-card-table tbody,
+    .admin-panel[data-admin-panel="wardens"] .admin-card-table tbody,
+    .admin-panel[data-admin-panel="keys"] .admin-card-table tbody {
+        display: grid;
+        gap: 12px;
+    }
+
+    .admin-panel[data-admin-panel="rooms"] .admin-card-table tbody tr,
+    .admin-panel[data-admin-panel="wardens"] .admin-card-table tbody tr,
+    .admin-panel[data-admin-panel="keys"] .admin-card-table tbody tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0,1fr));
+        gap: 12px;
+        padding: 14px;
+        border: 1px solid rgba(91,159,211,.2);
+        border-radius: 14px;
+        background: linear-gradient(145deg,#071e34,#041426);
+        box-shadow: 0 10px 28px rgba(0,0,0,.2);
+    }
+
+    .admin-panel[data-admin-panel="rooms"] .admin-card-table tbody td,
+    .admin-panel[data-admin-panel="wardens"] .admin-card-table tbody td,
+    .admin-panel[data-admin-panel="keys"] .admin-card-table tbody td {
+        display: grid;
+        align-content: start;
+        gap: 6px;
+        width: auto;
+        min-width: 0;
+        padding: 0;
+        border: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .admin-panel[data-admin-panel="rooms"] .admin-card-table tbody td::before,
+    .admin-panel[data-admin-panel="wardens"] .admin-card-table tbody td::before,
+    .admin-panel[data-admin-panel="keys"] .admin-card-table tbody td::before {
+        content: attr(data-label);
+        color: #86a9c3;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+}
+
+@container admin-panel (max-width: 560px) {
+    .admin-panel[data-admin-panel="rooms"] .admin-add-slot,
+    .admin-panel[data-admin-panel="wardens"] .admin-add-slot,
+    .admin-panel[data-admin-panel="keys"] .admin-add-slot,
+    .admin-panel[data-admin-panel="bookings"] .booking-card,
+    .admin-panel[data-admin-panel="requests"] .booking-card,
+    .admin-panel[data-admin-panel="rooms"] .admin-card-table tbody tr,
+    .admin-panel[data-admin-panel="wardens"] .admin-card-table tbody tr,
+    .admin-panel[data-admin-panel="keys"] .admin-card-table tbody tr {
+        grid-template-columns: minmax(0,1fr);
+    }
+
+    .admin-panel[data-admin-panel="rooms"] .admin-add-slot button,
+    .admin-panel[data-admin-panel="wardens"] .admin-add-slot button,
+    .admin-panel[data-admin-panel="keys"] .admin-add-slot button,
+    .admin-panel[data-admin-panel="bookings"] .booking-card > form button,
+    .admin-panel[data-admin-panel="requests"] .booking-card > div[style] button {
+        grid-column: 1 / -1;
+        width: 100%;
+    }
+
+    .admin-panel[data-admin-panel="requests"] .booking-card > div[style] form {
+        flex: 1 1 100%;
+        min-width: 0;
+    }
+}
+
+@container accounts-panel (max-width: 1050px) {
+    .admin-panel[data-admin-panel="accounts"] .admin-table-wrap {
+        overflow: visible;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        box-shadow: none;
+    }
+
+    .admin-panel[data-admin-panel="accounts"] .admin-users-table {
+        display: block;
+        min-width: 0;
+    }
+
+    .admin-panel[data-admin-panel="accounts"] .admin-users-table thead {
+        display: none;
+    }
+
+    .admin-panel[data-admin-panel="accounts"] .admin-users-table tbody {
+        display: grid;
+        gap: 14px;
+    }
+
+    .admin-panel[data-admin-panel="accounts"] .admin-users-table tbody tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        padding: 16px;
+        border: 1px solid rgba(91,159,211,.2);
+        border-radius: 14px;
+        background: linear-gradient(145deg,#071e34,#041426);
+        box-shadow: 0 10px 28px rgba(0,0,0,.2);
+    }
+
+    .admin-panel[data-admin-panel="accounts"] .admin-users-table tbody td {
+        display: grid;
+        align-content: start;
+        gap: 6px;
+        width: auto;
+        min-width: 0;
+        padding: 0;
+        border: 0;
+    }
+
+    .admin-panel[data-admin-panel="accounts"] .admin-users-table tbody td::before {
+        content: attr(data-label);
+        color: #86a9c3;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+
+    .admin-panel[data-admin-panel="accounts"] .admin-users-table tbody .admin-account-actions {
+        grid-column: 1 / -1;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding-top: 10px;
+        border-top: 1px solid rgba(91,159,211,.18);
+    }
+
+    .admin-panel[data-admin-panel="accounts"] .admin-account-actions form {
+        display: flex;
+        min-width: 0;
+        max-width: 100%;
+        margin: 0;
+    }
+
+    .admin-panel[data-admin-panel="accounts"] .admin-account-actions .admin-mini-form {
+        flex: 1 1 260px;
+    }
+
+    .admin-panel[data-admin-panel="accounts"] .admin-account-actions .admin-mini-form select {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    .admin-panel[data-admin-panel="accounts"] .admin-account-actions > .small,
+    .admin-panel[data-admin-panel="accounts"] .admin-account-actions form button {
+        flex: 0 1 auto;
+        min-height: 40px;
+        max-width: 100%;
+    }
+
+    .admin-panel[data-admin-panel="accounts"] .admin-password-form {
+        align-items: stretch;
+    }
+
+    .admin-panel[data-admin-panel="accounts"] .admin-password-field {
+        flex: 1 1 180px;
+        min-width: 0;
+    }
+}
+
+@container accounts-panel (max-width: 560px) {
+    .admin-panel[data-admin-panel="accounts"] .admin-users-table tbody tr {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .admin-panel[data-admin-panel="accounts"] .admin-users-table tbody .admin-account-actions {
+        grid-column: auto;
+    }
+
+    .admin-panel[data-admin-panel="accounts"] .admin-account-actions form,
+    .admin-panel[data-admin-panel="accounts"] .admin-account-actions .admin-mini-form {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+
+    .admin-panel[data-admin-panel="accounts"] .admin-account-actions > .small,
+    .admin-panel[data-admin-panel="accounts"] .admin-account-actions form button {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+}
+
+@media (max-width: 1250px) {
+    .admin-shell.admin-section-open > .admin-panel[data-admin-panel="schedule"].active {
+        min-width: 0;
+        width: 100% !important;
+    }
+
+    .admin-panel[data-admin-panel="schedule"] .schedule-day {
+        padding: 14px;
+    }
+
+    .admin-panel[data-admin-panel="schedule"] .admin-day-title {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .admin-panel[data-admin-panel="schedule"] .admin-day-title h3 {
+        font-size: 21px;
+    }
+
+    .admin-panel[data-admin-panel="schedule"] .admin-schedule-slot {
+        grid-template-columns: minmax(0,1fr) !important;
+        gap: 10px;
+        overflow: visible;
+        padding: 12px;
+    }
+
+    .admin-panel[data-admin-panel="schedule"] .admin-slot-time {
+        min-width: 0;
+    }
+
+    .admin-panel[data-admin-panel="schedule"] .admin-slot-editor {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        min-width: 0;
+        overflow: visible;
+    }
+
+    .admin-panel[data-admin-panel="schedule"] .admin-slot-form {
+        grid-template-columns: minmax(0,1fr) !important;
+        gap: 10px;
+        width: 100%;
+    }
+
+    .admin-panel[data-admin-panel="schedule"] .admin-slot-form label,
+    .admin-panel[data-admin-panel="schedule"] .admin-booking-preview,
+    .admin-panel[data-admin-panel="schedule"] .admin-delete-inline {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .admin-panel[data-admin-panel="schedule"] .admin-delete-inline button {
+        width: 100%;
+    }
+
+    .admin-panel[data-admin-panel="schedule"] .admin-add-slot {
+        grid-template-columns: minmax(0,1fr) !important;
+    }
+
+    .admin-panel[data-admin-panel="schedule"] .schedule-change-controls {
+        align-items: stretch;
+    }
+
+    .admin-panel[data-admin-panel="schedule"] .schedule-machine-status,
+    .admin-panel[data-admin-panel="schedule"] .schedule-apply-button {
+        width: 100%;
+    }
+}
+
+/* Keep the admin workspace in place while the chat drawer is open. */
+body.side-panel-open #site-main,
+body.side-panel-open header,
+body.side-panel-open header .wrap,
+body.side-panel-open footer {
+    transform: none !important;
+    left: auto !important;
+}
+
+body.side-panel-open #site-main,
+body.side-panel-open header .wrap,
+body.side-panel-open footer {
+    width: 100% !important;
+    max-width: none !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+}
+
+body.side-panel-open #site-main {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+}
+
+@media (min-width: 1101px) {
+    :root {
+        --chat-drawer-width: min(460px, 38vw);
+    }
+
+    body.side-panel-admin #site-main > .admin-shell {
+        width: calc(100vw - var(--chat-drawer-width) - 48px) !important;
+        margin-left: 16px !important;
+        margin-right: 0 !important;
+    }
+
+    body.side-panel-open .side-drawer {
+        top: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        left: auto !important;
+        width: var(--chat-drawer-width) !important;
+        min-width: 360px !important;
+        height: 100vh !important;
+        transform: translate3d(100%, 0, 0) !important;
+    }
+
+    body.side-panel-open .side-drawer.open {
+        transform: translate3d(0, 0, 0) !important;
+    }
+}
+
+@media (max-width: 1100px) {
+    body.side-panel-open .side-drawer {
+        top: auto !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        height: min(52vh, 560px) !important;
+        max-height: 70vh !important;
+        border-top: 1px solid rgba(91, 159, 211, .35) !important;
+        border-left: 0 !important;
+        transform: translate3d(0, 100%, 0) !important;
+    }
+
+    body.side-panel-open .side-drawer.open {
+        transform: translate3d(0, 0, 0) !important;
+    }
+}
+
+.warden-management-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin: 12px 0 18px;
+    align-items: start;
+}
+
+.warden-management-card {
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid rgba(91, 159, 211, .2);
+    border-radius: 16px;
+    background: rgba(7, 27, 46, .55);
+}
+
+.warden-management-card h3 {
+    margin: 0 0 8px;
+}
+
+.warden-management-card > p {
+    margin: 0 0 12px;
+    color: #a9bfd0;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.warden-create-form,
+.warden-key-form,
+.warden-admin-message-form {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.warden-create-form label,
+.warden-key-form label,
+.warden-admin-message-form label {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+}
+
+.warden-create-form label > span,
+.warden-key-form label > span,
+.warden-admin-message-form label > span {
+    color: #86a9c3;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .06em;
+}
+
+.warden-create-form input,
+.warden-create-form select,
+.warden-key-form select,
+.warden-admin-message-form select,
+.warden-admin-message-form textarea,
+.warden-room-edit-form select {
+    width: 100%;
+    min-width: 0;
+    padding: 9px;
+    border: 1px solid rgba(134, 169, 195, .35);
+    border-radius: 8px;
+    background: #071e34;
+    color: #e8f4ff;
+}
+
+.warden-create-form select[multiple],
+.warden-key-form select[multiple],
+.warden-room-edit-form select[multiple] {
+    min-height: 110px;
+}
+
+.warden-room-edit-form {
+    display: grid;
+    gap: 6px;
+}
+
+.warden-admin-message-form {
+    max-width: 760px;
+    margin-bottom: 20px;
+}
+
+.warden-admin-threads {
+    display: grid;
+    gap: 14px;
+}
+
+.schedule-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 12px;
+    margin: 16px 0;
+    padding: 14px 16px;
+    border: 1px solid rgba(91, 159, 211, .2);
+    border-radius: 14px;
+    background: #08243d;
+    color: #e8f4ff;
+}
+
+.schedule-controls label {
+    display: grid;
+    gap: 6px;
+    min-width: min(240px, 100%);
+    flex: 1 1 220px;
+}
+
+.schedule-controls label span {
+    color: #a9bfd0;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.schedule-controls select {
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 10px;
+    border: 1px solid rgba(134, 169, 195, .35);
+    border-radius: 8px;
+    background: #071e34;
+    color: #e8f4ff;
+}
+
+@media (max-width: 850px) {
+    .warden-management-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .schedule-controls {
+        align-items: stretch;
+    }
+
+    .schedule-controls button {
+        width: 100%;
     }
 }

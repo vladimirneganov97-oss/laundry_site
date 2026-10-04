@@ -15,48 +15,139 @@
         <div class="notice admin-notice">{{ admin_message }}</div>
     {% endif %}
 
-    <div class="admin-tabs" role="tablist">
-        <button type="button" class="admin-tab {% if active_admin_tab == 'accounts' %}active{% endif %}" data-admin-tab="accounts">👤 <span>Зарегистрированные аккаунты</span></button>
-        <button type="button" class="admin-tab {% if active_admin_tab == 'schedule' %}active{% endif %}" data-admin-tab="schedule">📅 <span>Расписание на неделю</span></button>
-        <button type="button" class="admin-tab {% if active_admin_tab == 'bookings' %}active{% endif %}" data-admin-tab="bookings">🧺 <span>Текущее бронирование</span><b class="tab-badge">{{ current_bookings|length }}</b></button>
-        <button type="button" class="admin-tab {% if active_admin_tab == 'keys' %}active{% endif %}" data-admin-tab="keys">🔑 <span>Ключи регистрации</span><b class="tab-badge">{{ registration_keys|rejectattr('IsUsed')|list|length }}</b></button>
-        <button type="button" class="admin-tab {% if active_admin_tab == 'requests' %}active{% endif %}" data-admin-tab="requests">📝 <span>Заявки на регистрацию</span><b class="tab-badge">{{ registration_requests|length }}</b></button>
-        <button type="button" class="admin-tab {% if active_admin_tab == 'announcements' %}active{% endif %}" data-admin-tab="announcements">📢 <span>Объявления</span></button>
-        <button type="button" class="admin-tab" data-side-panel="admin-chat"{% if active_admin_tab == 'chat' %} data-auto-open-chat="1"{% endif %}>💬 <span>Связь с пользователями</span><b id="admin-chat-badge" class="tab-badge notification-badge"{% if unread_chat_count == 0 %} hidden{% endif %}>{{ unread_chat_count }}</b></button>
+    <div class="admin-navigation">
+        <div class="admin-tabs" role="tablist">
+            <button type="button" class="admin-tab {% if active_admin_tab == 'accounts' %}active{% endif %}" data-admin-tab="accounts">👤 <span>Зарегистрированные аккаунты</span></button>
+            <button type="button" class="admin-tab {% if active_admin_tab == 'rooms' %}active{% endif %}" data-admin-tab="rooms">🏠 <span>Постирочные</span></button>
+            <button type="button" class="admin-tab {% if active_admin_tab == 'wardens' %}active{% endif %}" data-admin-tab="wardens">👥 <span>Старосты</span></button>
+            <button type="button" class="admin-tab {% if active_admin_tab == 'schedule' %}active{% endif %}" data-admin-tab="schedule">📅 <span>Расписание на неделю</span></button>
+            <button type="button" class="admin-tab {% if active_admin_tab == 'bookings' %}active{% endif %}" data-admin-tab="bookings">🧺 <span>Текущее бронирование</span><b class="tab-badge">{{ current_bookings|length }}</b></button>
+            <button type="button" class="admin-tab {% if active_admin_tab == 'keys' %}active{% endif %}" data-admin-tab="keys">🔑 <span>Ключи регистрации</span><b class="tab-badge">{{ registration_keys|rejectattr('IsUsed')|list|length }}</b></button>
+            <button type="button" class="admin-tab {% if active_admin_tab == 'requests' %}active{% endif %}" data-admin-tab="requests">📝 <span>Заявки на регистрацию</span><b class="tab-badge">{{ registration_requests|length }}</b></button>
+            <button type="button" class="admin-tab {% if active_admin_tab == 'announcements' %}active{% endif %}" data-admin-tab="announcements">📢 <span>Объявления</span></button>
+            <button type="button" class="admin-tab" data-side-panel="admin-chat"{% if active_admin_tab == 'chat' %} data-auto-open-chat="1"{% endif %}>💬 <span>Связь с пользователями</span><b id="admin-chat-badge" class="tab-badge notification-badge"{% if unread_chat_count == 0 %} hidden{% endif %}>{{ unread_chat_count }}</b></button>
+            <button type="button" class="admin-tab {% if active_admin_tab == 'warden-chat' %}active{% endif %}" data-admin-tab="warden-chat">💬 <span>Связь со старостами</span><b class="tab-badge notification-badge"{% if unread_warden_chat_count == 0 %} hidden{% endif %}>{{ unread_warden_chat_count }}</b></button>
+        </div>
+        <div class="admin-quick-links">
+            <button type="button" class="admin-tab admin-quick-link {% if active_admin_tab == 'history' %}active{% endif %}" data-admin-tab="history">📜 <span>Общая история</span></button>
+            <button type="button" class="admin-tab admin-quick-link {% if active_admin_tab == 'statistics' %}active{% endif %}" data-admin-tab="statistics">📊 <span>Статистика</span></button>
+            <button type="button" class="admin-tab admin-quick-link {% if active_admin_tab == 'audit' %}active{% endif %}" data-admin-tab="audit">🛡️ <span>Журнал действий</span></button>
+        </div>
     </div>
 
     <section class="admin-panel {% if active_admin_tab == 'announcements' %}active{% endif %}" data-admin-panel="announcements">
 <div class="admin-section-head"><h2>📢 Управление объявлениями</h2></div>
+{% set admin_announcement_count = announcements|selectattr("CreatedByWardenId", "none")|list|length %}
+{% if admin_announcement_count < 6 %}
 <form class="announcement-editor" action="/Admin/AddAnnouncement" method="post" enctype="multipart/form-data">
-<div class="announcement-input-row">
-    <label class="file-add-button" title="Добавить фото или файл">
-        +
-        <input id="announcementFile" type="file" name="image" accept="image/*,.pdf,.doc,.docx" />
+    <label class="announcement-field">
+        <span>Постирочная</span>
+        <select name="laundryRoomId">
+            <option value="">Все постирочные</option>
+            {% for room in rooms if room.IsActive %}
+            <option value="{{ room.Id }}">{{ room.Name }} · этаж {{ room.Floor }}</option>
+            {% endfor %}
+        </select>
     </label>
-    <textarea name="text" placeholder="Напишите объявление..."></textarea>
-    <button class="announcement-send" type="submit" title="Опубликовать">➤</button>
-</div>
-<div id="fileStatus" class="attachment-indicator" style="display:none">📎 Файл или изображение выбрано</div>
+    <label class="announcement-field">
+        <span>Заголовок объявления</span>
+        <input name="title" maxlength="120" placeholder="Например: Отключение воды" required />
+    </label>
+    <div class="announcement-field">
+        <label for="announcementText">Текст объявления</label>
+        <div class="announcement-textbox">
+            <textarea id="announcementText" name="text" rows="5" maxlength="5000" placeholder="Напишите текст объявления..." required></textarea>
+            <label class="file-add-button" title="Добавить изображение">
+                <span aria-hidden="true">+</span>
+                <input id="announcementFile" type="file" name="image" accept=".jpg,.jpeg,.png,.webp" />
+            </label>
+            <span id="fileStatus" class="attachment-indicator" hidden></span>
+        </div>
+    </div>
+    <fieldset class="announcement-field announcement-category-field">
+        <legend>Важность и тип объявления</legend>
+        <div class="announcement-category-options">
+            <label class="announcement-category-option">
+                <input type="radio" name="category" value="Важно" />
+                <span>Важно</span>
+            </label>
+            <label class="announcement-category-option">
+                <input type="radio" name="category" value="Расписание" />
+                <span>Расписание</span>
+            </label>
+            <label class="announcement-category-option">
+                <input type="radio" name="category" value="Ремонт" />
+                <span>Ремонт</span>
+            </label>
+            <label class="announcement-category-option">
+                <input type="radio" name="category" value="Новости" />
+                <span>Новости</span>
+            </label>
+            <label class="announcement-category-option">
+                <input type="radio" name="category" value="Другое" checked />
+                <span>Другое</span>
+            </label>
+        </div>
+    </fieldset>
+    <button class="announcement-submit" type="submit">Отправить объявление</button>
 </form>
+{% else %}
+<div class="notice">Достигнут лимит в 6 объявлений администратора. Удалите одно из своих старых, чтобы опубликовать новое.</div>
+{% endif %}
 
 <section class="admin-card announcements-board">
 <h2>📢 Доска объявлений</h2>
 {% for a in announcements %}
 <div class="notice">
-<b>{{ a.CreatedAt|localtime }}</b>
+<b>{{ a.CreatedAt|utc_localtime }}</b>
+<p><strong>{{ a.Category }}</strong> · {{ a.Title }}{% if a.LaundryRoomId %} · {{ rooms|selectattr("Id", "equalto", a.LaundryRoomId)|map(attribute="Name")|first }}{% else %} · Все постирочные{% endif %}</p>
 <p>{{ a.Text }}</p>
 {% if a.ImagePath %}
 <div class="attachment-indicator">📎 Прикреплён файл или изображение</div>
 <img src="{{ a.ImagePath }}" style="max-width:300px" />
+{% endif %}
 <form action="/Admin/DeleteAnnouncement" method="post" style="margin-top:8px">
     <input type="hidden" name="id" value="{{ a.Id }}" />
     <button class="small danger" type="submit">Удалить</button>
 </form>
-{% endif %}
 </div>
 {% endfor %}
 </section>
 </section>
+
+    <section class="admin-panel admin-data-panel {% if active_admin_tab == 'history' %}active{% endif %}" data-admin-panel="history">
+        <div class="admin-section-head">
+            <div>
+                <div class="section-label">ИСТОРИЯ</div>
+                <h2>Общая история стирок</h2>
+                <p>Просмотр и фильтрация бронирований по пользователю, ID, комнате и дате.</p>
+            </div>
+        </div>
+        {% set rows = history_rows %}
+        {% set history_embedded = true %}
+        {% include "admin/_history_content.html" %}
+    </section>
+
+    <section class="admin-panel admin-data-panel {% if active_admin_tab == 'statistics' %}active{% endif %}" data-admin-panel="statistics">
+        <div class="admin-section-head">
+            <div>
+                <div class="section-label">АНАЛИТИКА</div>
+                <h2>Статистика</h2>
+            </div>
+        </div>
+        {% include "admin/_statistics_content.html" %}
+    </section>
+
+    <section class="admin-panel admin-data-panel {% if active_admin_tab == 'audit' %}active{% endif %}" data-admin-panel="audit">
+        <div class="admin-section-head">
+            <div>
+                <div class="section-label">БЕЗОПАСНОСТЬ</div>
+                <h2>Журнал действий администратора</h2>
+            </div>
+        </div>
+        {% set logs = audit_logs %}
+        {% include "admin/_audit_content.html" %}
+    </section>
 
 <section class="admin-panel {% if active_admin_tab == 'accounts' %}active{% endif %}" data-admin-panel="accounts">
         <div class="admin-section-head">
@@ -66,6 +157,11 @@
                 <p>Изменяйте недельный лимит, задавайте новый пароль или удаляйте аккаунты.</p>
             </div>
         </div>
+        <form method="get" action="/Admin" class="history-filter">
+            <input type="hidden" name="tab" value="accounts" />
+            <label>Поиск по ID, имени, фамилии или комнате<input name="q" value="{{ user_search }}" /></label>
+            <button class="small white-button" type="submit">Найти</button>
+        </form>
         <div class="admin-table-wrap">
             <table class="admin-users-table">
                 <thead><tr><th>ID</th><th>Имя</th><th>Фамилия</th><th>Комната</th><th>Стирки</th><th>Лимит</th><th>Новый пароль</th><th>Дата регистрации</th><th>Действия</th></tr></thead>
@@ -73,19 +169,19 @@
                 {% for u in users %}
                     {% set count = weekly_counts.get(u.Id, 0) %}
                     <tr>
-                        <td><code>{{ u.PublicId }}</code></td>
-                        <td class="admin-name">{{ u.FirstName }}</td>
-                        <td class="admin-name">{{ u.LastName }}</td>
-                        <td class="admin-room">{{ u.RoomNumber }}</td>
-                        <td><strong>{{ count }}</strong></td>
-                        <td>
+                        <td data-label="ID"><code>{{ u.PublicId }}</code></td>
+                        <td class="admin-name" data-label="Имя">{{ u.FirstName }}</td>
+                        <td class="admin-name" data-label="Фамилия">{{ u.LastName }}</td>
+                        <td class="admin-room" data-label="Комната">{{ u.RoomNumber }}</td>
+                        <td data-label="Стирки"><strong>{{ count }}</strong></td>
+                        <td data-label="Лимит">
                             <form action="/Admin/UpdateUserLimit" method="post" class="inline-form admin-mini-form">
                                 <input type="hidden" name="id" value="{{ u.Id }}" />
                                 <input name="weeklyBookingLimit" type="number" min="0" max="50" value="{{ u.WeeklyBookingLimit }}" />
                                 <button class="small white-button" type="submit">Сохранить</button>
                             </form>
                         </td>
-                        <td>
+                        <td data-label="Новый пароль">
                             <form action="/Admin/ResetUserPassword" method="post" class="admin-password-form">
                                 <input type="hidden" name="id" value="{{ u.Id }}" />
                                 <div class="password-field admin-password-field">
@@ -95,8 +191,24 @@
                                 <button class="small white-button" type="submit">Сменить</button>
                             </form>
                         </td>
-                        <td>{{ u.CreatedAt|localtime }}</td>
-                        <td>
+                        <td data-label="Дата регистрации">{{ u.CreatedAt|localtime }}</td>
+                        <td class="admin-account-actions" data-label="Действия">
+                            <div class="muted">Постирочная: {{ room_name if room_name else '—' }}</div>
+                            <form action="/Admin/UpdateUserLaundryRoom" method="post" class="admin-mini-form">
+                                <input type="hidden" name="userId" value="{{ u.Id }}" />
+                                <select name="laundryRoomId">
+                                    {% for room in rooms %}
+                                        <option value="{{ room.Id }}" {% if u.LaundryRoomId == room.Id %}selected{% endif %}>{{ room.Name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button class="small white-button" type="submit">Привязать</button>
+                            </form>
+                            <a class="small white-button" href="/Admin/History?q={{ u.PublicId }}">История</a>
+                            <div class="muted">{{ "Заблокирован" if u.IsBlocked else "Активен" }}</div>
+                            <form action="/Admin/ToggleUserBlock" method="post">
+                                <input type="hidden" name="id" value="{{ u.Id }}" />
+                                <button class="small white-button" type="submit">{{ "Разблокировать" if u.IsBlocked else "Заблокировать" }}</button>
+                            </form>
                             <form action="/Admin/DeleteUser" method="post" onsubmit="return confirm('Удалить аккаунт и его бронирования?');">
                                 <input type="hidden" name="id" value="{{ u.Id }}" />
                                 <button class="small danger" type="submit">Удалить</button>
@@ -109,6 +221,195 @@
         </div>
     </section>
 
+    <section class="admin-panel {% if active_admin_tab == 'rooms' %}active{% endif %}" data-admin-panel="rooms">
+        <div class="admin-section-head">
+            <div>
+                <div class="section-label">ПОСТИРОЧНЫЕ</div>
+                <h2>Комнаты постирочных</h2>
+                <p>Допустимые номера: 102 и 117 на 1-м этаже, 202 и 217 на 2-м и так далее до 902 и 917.</p>
+            </div>
+        </div>
+        <form action="/Admin/AddLaundryRoom" method="post" class="admin-add-slot">
+            <label><span>Этаж</span><select name="floor" data-laundry-room-floor required>{% for floor in range(1, 10) %}<option value="{{ floor }}" {% if floor == 1 %}selected{% endif %}>{{ floor }}</option>{% endfor %}</select></label>
+            <label><span>Номер комнаты</span><select name="room_number" data-laundry-room-number required>{% for floor in range(1, 10) %}<option value="{{ floor * 100 + 2 }}" data-floor="{{ floor }}" {% if floor == 1 %}selected{% endif %}>{{ floor * 100 + 2 }}</option><option value="{{ floor * 100 + 17 }}" data-floor="{{ floor }}">{{ floor * 100 + 17 }}</option>{% endfor %}</select></label>
+            <label><span>Название</span><input name="name" maxlength="80" placeholder="Постирочная 102" /></label>
+            <button class="small white-button" type="submit">＋ Добавить комнату</button>
+        </form>
+        <div class="admin-table-wrap">
+            <table class="admin-users-table admin-card-table">
+                <thead><tr><th>ID</th><th>Этаж</th><th>Номер</th><th>Название</th><th>Статус</th><th>Действия</th></tr></thead>
+                <tbody>
+                {% for room in rooms %}
+                    <tr>
+                        <td data-label="ID">{{ room.Id }}</td>
+                        <td data-label="Этаж">{{ room.Floor }}</td>
+                        <td data-label="Номер">{{ room.RoomNumber }}</td>
+                        <td data-label="Название">
+                            <form action="/Admin/RenameLaundryRoom" method="post" class="inline-form admin-mini-form">
+                                <input type="hidden" name="roomId" value="{{ room.Id }}" />
+                                <input name="name" value="{{ room.Name }}" maxlength="80" aria-label="Название постирочной" required />
+                                <button class="small white-button" type="submit">Сохранить</button>
+                            </form>
+                        </td>
+                        <td data-label="Статус">{{ 'Активна' if room.IsActive else 'Отключена' }}</td>
+                        <td data-label="Действия">
+                            <form action="/Admin/DeleteLaundryRoom" method="post" onsubmit="return confirm('Удалить постирочную {{ room.Name }}? Все связи с комнатой будут очищены.');">
+                                <input type="hidden" name="roomId" value="{{ room.Id }}" />
+                                <button class="small danger" type="submit">Удалить</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="admin-panel {% if active_admin_tab == 'wardens' %}active{% endif %}" data-admin-panel="wardens">
+        <div class="admin-section-head">
+            <div>
+                <div class="section-label">СТАРОСТЫ</div>
+                <h2>Старосты постирочных</h2>
+                <p>Администратор создаёт учётную запись старосты. Обычная учётная запись назначается выбранным постирочным. Универсальный староста используется только там, где нет назначенного обычного старосты.</p>
+            </div>
+        </div>
+        <div class="warden-management-grid">
+            <div class="warden-management-card">
+                <h3>Добавить старосту</h3>
+                <p>Введите имя, созданный справа ключ и пароль, затем выберите одну или несколько постирочных.</p>
+                <form action="/Admin/CreateWardenAccount" method="post" class="warden-create-form">
+                    <label><span>Имя старосты</span><input name="displayName" maxlength="80" required /></label>
+                    <label><span>Ключ старосты</span><input name="key" maxlength="40" autocomplete="off" required /></label>
+                    <label><span>Пароль (минимум 8 символов)</span><input name="password" type="password" minlength="8" autocomplete="new-password" required /></label>
+                    <label><span>Постирочные</span>
+                        <select name="roomIds" multiple size="5" required>
+                            {% for room in rooms if room.IsActive %}
+                                <option value="{{ room.Id }}">{{ room.Name }} · {{ room.Floor }} этаж</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <button class="small white-button" type="submit">＋ Зарегистрировать старосту</button>
+                </form>
+            </div>
+            <div class="warden-management-card">
+                <h3>Ключи для создания старост</h3>
+                <p>Создайте отдельный одноразовый ключ и укажите, к каким постирочным он будет разрешён.</p>
+                <form action="/Admin/AddWardenKey" method="post" class="warden-key-form">
+                    <label><span>Доступные постирочные для ключа</span>
+                        <select name="roomIds" multiple size="4" required>
+                            {% for room in rooms if room.IsActive %}
+                                <option value="{{ room.Id }}">{{ room.Name }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <button class="small white-button" type="submit">＋ Создать отдельный ключ</button>
+                </form>
+                <div class="admin-table-wrap">
+                    <table class="admin-users-table">
+                        <thead><tr><th>Ключ</th><th>Постирочные</th><th>Статус</th><th>Создан</th></tr></thead>
+                        <tbody>
+                        {% for key in warden_keys %}
+                            <tr>
+                                <td data-label="Ключ"><code>{{ key.Key }}</code></td>
+                                <td data-label="Постирочные">{{ warden_key_rooms.get(key.Id, "—") }}</td>
+                                <td data-label="Статус">{{ "Использован" if key.IsUsed else "Свободен" }}</td>
+                                <td data-label="Создан">{{ key.CreatedAt|localtime }}</td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="4">Ключи ещё не создавались.</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="admin-table-wrap">
+            <table class="admin-users-table admin-card-table">
+                <thead><tr><th>ID</th><th>Имя</th><th>Постирочные</th><th>Состояние</th><th>Создан</th><th>Действия</th></tr></thead>
+                <tbody>
+                {% for warden in wardens %}
+                    <tr>
+                        <td data-label="ID"><code>{{ warden.PublicId }}</code></td>
+                        <td data-label="Имя">{{ warden.DisplayName }}</td>
+                        <td data-label="Постирочные">
+                            {% if not warden.IsBlocked %}
+                            <form action="/Admin/UpdateWardenRooms" method="post" class="warden-room-edit-form">
+                                <input type="hidden" name="wardenId" value="{{ warden.Id }}" />
+                                <select name="roomIds" multiple size="3" required aria-label="Назначенные постирочные">
+                                    {% for room in rooms if room.IsActive %}
+                                        <option value="{{ room.Id }}" {% if room.Id in warden_room_ids.get(warden.Id, []) %}selected{% endif %}>{{ room.Name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button class="small white-button" type="submit">Сохранить</button>
+                            </form>
+                            {% else %}<span class="muted">Назначение снято</span>{% endif %}
+                        </td>
+                        <td data-label="Состояние">{{ "Доступ отключён" if warden.IsBlocked else "Активен" }}</td>
+                        <td data-label="Создан">{{ warden.CreatedAt|localtime }}</td>
+                        <td data-label="Действия">
+                            <form action="/Admin/DeleteWarden" method="post" onsubmit="return confirm('Удалить учётную запись старосты без возможности восстановления? Его назначения и доступ будут удалены.');">
+                                <input type="hidden" name="wardenId" value="{{ warden.Id }}" />
+                                <button class="small danger" type="submit">Удалить старосту</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="6">Старосты ещё не созданы.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="admin-panel {% if active_admin_tab == 'warden-chat' %}active{% endif %}" data-admin-panel="warden-chat">
+        <div class="admin-section-head">
+            <div>
+                <div class="section-label">СТАРОСТЫ</div>
+                <h2>Связь со старостами</h2>
+                <p>Личные сообщения в этом разделе видны только выбранному старосте и администратору.</p>
+            </div>
+        </div>
+        {% if wardens %}
+        <form action="/Admin/ReplyToWarden" method="post" class="warden-admin-message-form">
+            <label><span>Староста</span>
+                <select name="wardenId" required>
+                    {% for warden in wardens %}
+                        <option value="{{ warden.Id }}">{{ warden.DisplayName }}{% if warden.IsBlocked %} · доступ отключён{% endif %}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label><span>Сообщение</span><textarea name="message" maxlength="2000" rows="3" required placeholder="Напишите старосте..."></textarea></label>
+            <button class="small white-button" type="submit">Отправить старосте</button>
+        </form>
+        {% endif %}
+        <div class="warden-admin-threads">
+        {% for warden in wardens %}
+            {% set thread = warden_admin_threads.get(warden.Id, []) %}
+            <article class="chat-thread">
+                <div class="chat-thread-head"><strong>{{ warden.DisplayName }}</strong><span>{{ "Доступ отключён" if warden.IsBlocked else "Староста" }}</span></div>
+                <div class="chat-messages admin-chat-messages">
+                    {% for item in thread %}
+                    <div class="chat-message {{ item.SenderType|lower }} {% if item.IsRead %}read{% else %}unread{% endif %}">
+                        <div class="chat-meta">{{ "Администратор" if item.SenderType == "Admin" else "Староста" }} · {{ item.CreatedAt|localtime }}</div>
+                        <div class="chat-text">{{ item.Message }}</div>
+                        {% if item.SenderType == "Warden" and not item.IsRead %}
+                        <form action="/Admin/MarkWardenChatRead" method="post" class="chat-read-form">
+                            <input type="hidden" name="id" value="{{ item.Id }}" />
+                            <button class="small" type="submit">Отметить прочитанным</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="empty-state">Личных сообщений пока нет.</div>
+                    {% endfor %}
+                </div>
+            </article>
+        {% else %}
+            <div class="empty-state">Сначала создайте учётную запись старосты.</div>
+        {% endfor %}
+        </div>
+    </section>
+
     <section class="admin-panel {% if active_admin_tab == 'schedule' %}active{% endif %}" data-admin-panel="schedule">
         <div class="admin-section-head">
             <div>
@@ -118,12 +419,56 @@
             </div>
         </div>
 
+        <form action="/Admin" method="get" class="history-filter">
+            <input type="hidden" name="tab" value="schedule" />
+            <label>Постирочная
+                <select name="roomId">
+                    {% for room in schedule_rooms %}
+                        <option value="{{ room.Id }}" {% if room.Id == selected_laundry_room_id %}selected{% endif %}>{{ room.Name }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <button class="small white-button" type="submit">Показать расписание</button>
+        </form>
+
+        {% if selected_laundry_room_id %}
+        <form action="/Admin/ResetWeeklySchedule" method="post" class="schedule-default-form" onsubmit="return confirm('Установить расписание по умолчанию? Занятые и забронированные стирки останутся без изменений.');">
+            <input type="hidden" name="laundryRoomId" value="{{ selected_laundry_room_id }}" />
+            <p>Сбросит статусы «Технические работы», «Выходной», «Уборка» и «Закрыто»: все дни недели, включая понедельник, станут свободными. Занятые и забронированные стирки, а также очередь сохранятся.</p>
+            <button class="small white-button" type="submit">Расписание по умолчанию</button>
+        </form>
+        {% endif %}
+
+        <form id="scheduleChangesForm" action="/Admin/ApplyScheduleChanges" method="post">
+            {% if selected_laundry_room_id %}
+                <input type="hidden" name="laundryRoomId" value="{{ selected_laundry_room_id }}" />
+            {% endif %}
+        </form>
+        {% if machine %}
+        <section class="admin-card">
+            <h2>{{ selected_room.Name if selected_room else "Постирочная" }} · машина №1 · текущий статус: {{ machine.Status }}</h2>
+            <div class="schedule-change-controls">
+                <label class="schedule-machine-status">
+                    <span>Статус постирочной</span>
+                    <select name="machine_status" form="scheduleChangesForm">
+                    {% for status in ["Свободна", "Забронирована", "Работает", "Неисправна", "На обслуживании"] %}
+                        <option value="{{ status }}" {% if machine.Status == status %}selected{% endif %}>{{ status }}</option>
+                    {% endfor %}
+                    </select>
+                </label>
+                <button class="small white-button schedule-apply-button" type="submit" form="scheduleChangesForm">Внести изменения</button>
+            </div>
+        </section>
+        {% else %}
+            <button class="small white-button schedule-apply-button" type="submit" form="scheduleChangesForm">Внести изменения</button>
+        {% endif %}
+
         <div class="admin-week-list">
         {% for day in days %}
-            {% set day_slots = slots|selectattr("Day", "equalto", day)|list %}
+            {% set day_slots = schedule_slots|selectattr("Day", "equalto", day)|list %}
             <section class="admin-day schedule-day">
                 <div class="admin-day-title">
-                    <div><span class="day-number">{{ loop.index }}</span><h3>{{ day }}</h3></div>
+                    <div><span class="day-number">{{ loop.index }}</span><h3>{{ day }} <span class="schedule-day-date">{{ week_dates[loop.index0].strftime("%d.%m.%Y") }}</span></h3></div>
                     <span class="day-count">{{ day_slots|length }} слотов</span>
                 </div>
 
@@ -135,11 +480,11 @@
                     <div class="admin-schedule-slot">
                         <div class="admin-slot-time"><span>ВРЕМЯ</span><strong>{{ slot.Time }}</strong></div>
                         <div class="admin-slot-editor">
-                            <form class="admin-slot-form" action="/Admin/UpdateSchedule" method="post">
-                                <input type="hidden" name="id" value="{{ slot.Id }}" />
-                                <input type="hidden" name="day" value="{{ day }}" />
-                                <label><span>Время</span><input name="time" value="{{ slot.Time }}" maxlength="30" required /></label>
-                                <label><span>Статус</span><select name="status">
+                            <div class="admin-slot-form">
+                                <input type="hidden" name="slot_ids" value="{{ slot.Id }}" form="scheduleChangesForm" />
+                                <input type="hidden" name="slot_days" value="{{ day }}" form="scheduleChangesForm" />
+                                <label><span>Время</span><input name="slot_times" value="{{ slot.Time }}" maxlength="30" required form="scheduleChangesForm" /></label>
+                                <label><span>Статус</span><select name="slot_statuses" form="scheduleChangesForm">
                                     {% for status in schedule_statuses %}
                                         <option value="{{ status }}" {% if slot.Status == status %}selected{% endif %}>{{ status }}</option>
                                     {% endfor %}
@@ -148,10 +493,10 @@
                                     <span>БРОНИРОВАНИЕ</span>
                                     <strong>{{ slot.ReservedBy or "Свободно" }}</strong>
                                 </div>
-                                <button type="submit" class="small white-button">Сохранить</button>
-                            </form>
+                            </div>
                             <form action="/Admin/DeleteSchedule" method="post" class="admin-delete-inline" onsubmit="return confirm('Удалить эту стирку из расписания?');">
                                 <input type="hidden" name="id" value="{{ slot.Id }}" />
+                                <input type="hidden" name="laundryRoomId" value="{{ selected_laundry_room_id }}" />
                                 <button class="small danger" type="submit">Удалить</button>
                             </form>
                         </div>
@@ -159,12 +504,11 @@
                 {% endfor %}
                 </div>
 
-                <form action="/Admin/AddSchedule" method="post" class="admin-add-slot">
-                    <input type="hidden" name="day" value="{{ day }}" />
-                    <label><span>Новое время</span><input name="time" maxlength="30" placeholder="например, 08:00–11:00" required /></label>
-                    <label><span>Статус</span><select name="status">{% for status in schedule_statuses %}<option value="{{ status }}">{{ status }}</option>{% endfor %}</select></label>
-                    <button class="small white-button" type="submit">＋ Добавить стирку</button>
-                </form>
+                <div class="admin-add-slot">
+                    <input type="hidden" name="new_days" value="{{ day }}" form="scheduleChangesForm" />
+                    <label><span>Новое время</span><input name="new_times" maxlength="30" placeholder="например, 08:00–11:00" form="scheduleChangesForm" /></label>
+                    <label><span>Статус</span><select name="new_statuses" form="scheduleChangesForm">{% for status in schedule_statuses %}<option value="{{ status }}">{{ status }}</option>{% endfor %}</select></label>
+                </div>
             </section>
         {% endfor %}
         </div>
@@ -200,29 +544,112 @@
         <div class="admin-section-head">
             <div>
                 <div class="section-label">КЛЮЧИ</div>
-                <h2>Ключи регистрации <span class="count-badge">{{ registration_keys|length }}</span></h2>
-                <p>Ключ нужен для отправки регистрации. Свободный ключ можно использовать только для одной активной заявки; после подтверждения он становится использованным.</p>
+                <h2>Ключи доступа <span class="count-badge">{{ registration_keys|length + warden_keys|length }}</span></h2>
+                <p>Ключи регистрации и ключи для старост находятся в отдельных вкладках. Список можно отфильтровать по этажу и постирочной.</p>
             </div>
         </div>
 
-        <div class="admin-add-slot" style="margin-bottom:16px">
-            <form action="/Admin/AddRegistrationKeys" method="post" class="inline-form">
-                <label><span>Добавить ключей</span><input name="count" type="number" min="1" max="500" value="10" /></label>
-                <button class="small white-button" type="submit">＋ Добавить ключи</button>
-            </form>
-        </div>
+        <form action="/Admin" method="get" class="history-filter key-filters" style="margin-bottom:16px">
+            <input type="hidden" name="tab" value="keys" />
+            <input type="hidden" name="keyType" value="{{ key_type }}" />
+            <div class="key-type-filter">
+                <span>Тип ключей</span>
+                <div class="key-type-options" role="group" aria-label="Тип ключей">
+                    <a class="key-type-option {% if key_type == 'registration' %}active{% endif %}"
+                       aria-current="{{ 'page' if key_type == 'registration' else 'false' }}"
+                       href="/Admin?tab=keys&amp;keyType=registration{% if key_floor is not none %}&amp;keyFloor={{ key_floor }}{% endif %}{% if key_room_id is not none %}&amp;keyRoomId={{ key_room_id }}{% endif %}">Регистрация</a>
+                    <a class="key-type-option {% if key_type == 'warden' %}active{% endif %}"
+                       aria-current="{{ 'page' if key_type == 'warden' else 'false' }}"
+                       href="/Admin?tab=keys&amp;keyType=warden{% if key_floor is not none %}&amp;keyFloor={{ key_floor }}{% endif %}{% if key_room_id is not none %}&amp;keyRoomId={{ key_room_id }}{% endif %}">Старосты</a>
+                </div>
+            </div>
+            <label>Этаж
+                <select name="keyFloor">
+                    <option value="">Все этажи</option>
+                    {% for floor in rooms_by_floor.keys()|list %}
+                        <option value="{{ floor }}" {% if key_floor == floor %}selected{% endif %}>{{ floor }} этаж</option>
+                    {% endfor %}
+                </select>
+            </label>
+            <label>Постирочная
+                <select name="keyRoomId">
+                    <option value="">Все постирочные</option>
+                    {% for room in rooms if room.IsActive %}
+                        {% if not key_floor or room.Floor == key_floor %}
+                            <option value="{{ room.Id }}" {% if key_room_id == room.Id %}selected{% endif %}>{{ room.Name }} · {{ room.Floor }} этаж</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+            </label>
+            <button class="small white-button" type="submit">Применить фильтры</button>
+        </form>
 
-        <div class="admin-table-wrap">
-            <table class="admin-users-table">
-                <thead><tr><th>№</th><th>Ключ</th><th>Статус</th><th>Создан</th><th>Использован</th></tr></thead>
+        {% if key_type == 'warden' %}
+        <div class="admin-table-wrap" style="margin-bottom:20px">
+            <h3>Ключи для старост</h3>
+            <table class="admin-users-table admin-card-table">
+                <thead><tr><th>Ключ</th><th>Постирочные</th><th>Статус</th><th>Создан</th><th>Действия</th></tr></thead>
                 <tbody>
-                {% for key in registration_keys %}
+                {% for key in filtered_warden_keys %}
+                    <tr>
+                        <td data-label="Ключ"><code>{{ key.Key }}</code></td>
+                        <td data-label="Постирочные">{{ warden_key_rooms.get(key.Id, '—') }}</td>
+                        <td data-label="Статус">{{ 'Использован' if key.IsUsed else 'Свободен' }}</td>
+                        <td data-label="Создан">{{ key.CreatedAt|localtime }}</td>
+                        <td data-label="Действия">
+                            <div style="display:flex;gap:6px;flex-wrap:wrap">
+                                <form action="/Admin/ReplaceWardenRegistrationKey" method="post" onsubmit="return confirm('Заменить ключ и создать новый с теми же постирочными?');">
+                                    <input type="hidden" name="id" value="{{ key.Id }}" />
+                                    <button class="small white-button" type="submit">Заменить</button>
+                                </form>
+                                <form action="/Admin/DeleteWardenRegistrationKey" method="post" onsubmit="return confirm('Удалить этот ключ?');">
+                                    <input type="hidden" name="id" value="{{ key.Id }}" />
+                                    <button class="small danger" type="submit">Удалить</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr><td colspan="5">Ключи старост в выбранном фильтре отсутствуют.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        {% if key_type == 'registration' %}
+        <div class="admin-table-wrap">
+            <div class="admin-add-slot" style="margin-bottom:16px">
+                <form action="/Admin/AddRegistrationKeys" method="post" class="inline-form">
+                    <label><span>Староста</span><select name="wardenId" required>
+                        {% for warden in wardens %}<option value="{{ warden.Id }}">{{ warden.DisplayName }}</option>{% endfor %}
+                    </select></label>
+                    <label><span>Постирочная</span><select name="laundryRoomId" required>
+                        {% for room in rooms if room.IsActive %}<option value="{{ room.Id }}">{{ room.Name }} · {{ room.Floor }} этаж</option>{% endfor %}
+                    </select></label>
+                    <label><span>Количество</span><input name="count" type="number" min="1" max="500" value="10" /></label>
+                    <button class="small white-button" type="submit">＋ Добавить ключи</button>
+                </form>
+            </div>
+            <h3>Ключи регистрации</h3>
+            <table class="admin-users-table admin-card-table">
+                <thead><tr><th>№</th><th>Ключ</th><th>Получатель</th><th>Постирочная</th><th>Статус</th><th>Создан</th><th>Использован</th><th>Действия</th></tr></thead>
+                <tbody>
+                {% for key in filtered_registration_keys %}
                     {% set pending = key.UsedByRequestId and registration_requests|selectattr("Id", "equalto", key.UsedByRequestId)|list %}
                     <tr>
-                        <td>{{ key.Id }}</td>
-                        <td><code>{{ key.Key }}</code></td>
-                        <td>
-                            {% if not key.IsUsed %}
+                        <td data-label="№">{{ loop.index }}</td>
+                        <td data-label="Ключ"><code>{{ key.Key }}</code></td>
+                        <td data-label="Получатель">{{ registration_key_wardens.get(key.WardenId, 'Администратор' if not key.WardenId else '—') }}</td>
+                        <td data-label="Постирочная">{{ registration_room_names.get(key.LaundryRoomId, '—') }}</td>
+                        <td data-label="Статус">
+                            {% if not key.LaundryRoomId %}
+                                <span>Не привязан; для регистрации не подходит</span>
+                            {% elif not key.WardenId and pending %}
+                                <span>Ожидает подтверждения администратором</span>
+                            {% elif not key.WardenId and not key.IsUsed %}
+                                <span>Свободен для администратора</span>
+                            {% elif not key.IsUsed %}
                                 <span>Свободен</span>
                             {% elif pending %}
                                 <span>Ожидает подтверждения</span>
@@ -230,13 +657,28 @@
                                 <span>Использован</span>
                             {% endif %}
                         </td>
-                        <td>{{ key.CreatedAt|localtime }}</td>
-                        <td>{{ key.UsedAt|localtime }}</td>
+                        <td data-label="Создан">{{ key.CreatedAt|localtime }}</td>
+                        <td data-label="Использован">{{ key.UsedAt|localtime }}</td>
+                        <td data-label="Действия">
+                            <div style="display:flex;gap:6px;flex-wrap:wrap">
+                                <form action="/Admin/ReplaceRegistrationKey" method="post" onsubmit="return confirm('Заменить ключ и создать новый с теми же постирочной и получателем?');">
+                                    <input type="hidden" name="id" value="{{ key.Id }}" />
+                                    <button class="small white-button" type="submit" {% if pending or not key.LaundryRoomId %}disabled title="Сначала завершите текущую заявку и привяжите постирочную"{% endif %}>Заменить</button>
+                                </form>
+                                <form action="/Admin/DeleteRegistrationKey" method="post" onsubmit="return confirm('Удалить этот ключ?');">
+                                    <input type="hidden" name="id" value="{{ key.Id }}" />
+                                    <button class="small danger" type="submit" {% if pending %}disabled title="Ключ используется в ожидающей заявке"{% endif %}>Удалить</button>
+                                </form>
+                            </div>
+                        </td>
                     </tr>
+                {% else %}
+                    <tr><td colspan="8">Ключи регистрации для выбранного фильтра отсутствуют.</td></tr>
                 {% endfor %}
                 </tbody>
             </table>
         </div>
+        {% endif %}
     </section>
 
     <section class="admin-panel {% if active_admin_tab == 'requests' %}active{% endif %}" data-admin-panel="requests">
@@ -256,6 +698,7 @@
             <div class="booking-card">
                 <div class="booking-user"><span>Имя и фамилия</span><strong>{{ req.FirstName }} {{ req.LastName }}</strong></div>
                 <div class="booking-user"><span>Комната</span><strong>{{ req.RoomNumber }}</strong></div>
+                <div class="booking-user"><span>Постирочная / получатель</span><strong>{{ registration_room_names.get(req.LaundryRoomId, '—') }} · {{ registration_key_wardens.get(req.WardenId, 'Администратор' if not req.WardenId else '—') }}</strong></div>
                 <div class="booking-user"><span>Ключ</span><strong><code>{{ req.RegistrationKey.Key if req.RegistrationKey else "" }}</code></strong></div>
                 <div class="booking-user"><span>Отправлено</span><strong>{{ req.CreatedAt|localtime }}</strong></div>
                 <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -286,27 +729,12 @@
         {% if not chat_messages %}
             <div class="empty-state">Сообщений пока нет.</div>
         {% endif %}
-        {% for thread_key, group in chat_threads.items() %}
-            {% set first = group[0] %}
-            {% set req = first.RegistrationRequest %}
-            {% if not req %}
-                {% for r in registration_requests if r.Id == thread_key[1] %}
-                    {% set req = r %}
-                {% endfor %}
-            {% endif %}
-            {% set user = first.User %}
-            {% if not user %}
-                {% for u in users if u.Id == thread_key[0] %}
-                    {% set user = u %}
-                {% endfor %}
-            {% endif %}
-            {% if user %}
-                {% set title = user.FirstName ~ " " ~ user.LastName ~ " · комната " ~ user.RoomNumber %}
-            {% elif req %}
-                {% set title = "Заявка #" ~ req.Id ~ " · " ~ req.FirstName ~ " " ~ req.LastName ~ " · комната " ~ req.RoomNumber %}
-            {% else %}
-                {% set title = "Пользователь" %}
-            {% endif %}
+        {% for thread in chat_threads %}
+            {% set group = thread.messages %}
+            {% set req = thread.request %}
+            {% set user = thread.user %}
+            {% set warden = thread.warden %}
+            {% set title = thread.title %}
             <div class="chat-thread">
                 <div class="chat-thread-head"><strong>{{ title }}</strong><span>{{ group|length }} сообщений</span></div>
                 <div class="chat-messages admin-chat-messages">
@@ -326,7 +754,8 @@
                 <form action="/Admin/ReplyToUser" method="post" class="chat-reply-form">
                     <input type="hidden" name="userId" value="{{ user.Id if user else '' }}" />
                     <input type="hidden" name="requestId" value="{{ req.Id if req else '' }}" />
-                    <textarea name="message" maxlength="2000" rows="2" placeholder="Написать пользователю..." required></textarea>
+                    <input type="hidden" name="wardenId" value="{{ warden.Id if warden else '' }}" />
+                    <textarea name="message" maxlength="2000" rows="2" placeholder="{{ 'Ответить старосте...' if warden else 'Написать пользователю...' }}" required></textarea>
                     <button class="small" type="submit">Ответить</button>
                 </form>
             </div>

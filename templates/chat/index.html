@@ -1,11 +1,12 @@
 {% extends "layout.html" %}
 {% block content %}
 <div class="card chat-page" data-side-chat-content>
+    {% set chat_is_admin = (reg_request and reg_request.WardenId is none) or (account_public_id and not chat_warden) %}
     <div class="chat-page-head">
         <div>
             <div class="section-label">ЧАТ</div>
-            <h1>💬 Связь с админом (старостой)</h1>
-            <p>Здесь можно задать вопрос администратору и получить ответ прямо на сайте.</p>
+            <h1>💬 {% if chat_warden %}Чат со старостой: {{ chat_warden.DisplayName }}{% elif chat_is_admin %}Чат с администратором{% else %}Чат по заявке{% endif %}</h1>
+            <p>{% if chat_warden %}Здесь можно задать вопрос старосте, выбранному при регистрации.{% elif chat_is_admin %}Здесь можно написать администратору по поводу регистрации и постирочной.{% else %}Здесь отображаются сообщения по вашей заявке.{% endif %}</p>
         </div>
     </div>
 
@@ -20,7 +21,7 @@
         </form>
     {% else %}
         {% if reg_request and reg_request.Status == "Pending" %}
-            <div class="notice">Ваша заявка ещё ожидает подтверждения администратора. Здесь можно написать ему.</div>
+            <div class="notice">Ваша заявка ещё ожидает рассмотрения. Здесь можно написать{% if chat_warden %} старосте{% elif chat_is_admin %} администратору{% else %} по заявке{% endif %}.</div>
         {% endif %}
         {% if reg_request and reg_request.Status == "Rejected" %}
             <div class="notice error">Заявка отклонена, но история переписки сохранена.</div>
@@ -28,12 +29,27 @@
 
         <div class="chat-messages" id="chat-messages">
             {% if not messages %}
-                <div class="empty-state">Сообщений пока нет. Напишите администратору первым.</div>
+                <div class="empty-state">Сообщений пока нет. Напишите первым.</div>
             {% endif %}
             {% for message in messages %}
                 <div class="chat-message {{ message.SenderType|lower }}">
                     <div class="chat-meta">{{ sender_label(message.SenderType, false) }} · {{ message.CreatedAt|localtime }}</div>
-                    <div class="chat-text">{{ message.Message }}</div>
+                    <div class="chat-text">
+                        {% if account_public_id and message.SenderType in ["Admin", "System"] and account_public_id in message.Message %}
+                            {% set message_parts = message.Message.split(account_public_id, 1) %}
+                            {{ message_parts[0] }}<div class="account-id-card">
+                                <span class="account-id-label">ID аккаунта</span>
+                                <code>{{ account_public_id }}</code>
+                                <div class="account-id-actions">
+                                    <button type="button" class="small" data-copy-account-id="{{ account_public_id }}">Скопировать</button>
+                                    <a class="small white-button" href="/Account/Login?publicId={{ account_public_id }}">Вставить ID в поле входа</a>
+                                </div>
+                                <span class="account-id-copy-status" aria-live="polite"></span>
+                            </div>{{ message_parts[1] }}
+                        {% else %}
+                            {{ message.Message }}
+                        {% endif %}
+                    </div>
                 </div>
             {% endfor %}
         </div>
@@ -42,7 +58,7 @@
             {% if chat_key %}
                 <input type="hidden" name="key" value="{{ chat_key }}" />
             {% endif %}
-            <textarea name="message" maxlength="2000" rows="3" placeholder="Напишите сообщение администратору..." required></textarea>
+            <textarea name="message" maxlength="2000" rows="3" placeholder="Напишите сообщение{% if chat_warden %} старосте{% elif chat_is_admin %} администратору{% else %} по заявке{% endif %}..." required></textarea>
             <button class="button" type="submit">Отправить сообщение</button>
         </form>
     {% endif %}

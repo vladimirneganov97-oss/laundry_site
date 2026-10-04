@@ -1,0 +1,8 @@
+{% extends "layout.html" %}
+{% block content %}
+<section class="card form-card">
+    <h1>Общая история стирок</h1>
+    {% include "admin/_history_content.html" %}
+    <p><a href="/Admin">Вернуться в админ-панель</a></p>
+</section>
+{% endblock %}

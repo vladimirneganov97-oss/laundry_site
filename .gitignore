@@ -1,0 +1,30 @@
+# Secrets and environment
+.env
+.env.*
+!.env.example
+
+# Python environments and bytecode
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+
+# Local databases and application data
+data/
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# User uploads and logs
+static/uploads/
+*.log
+*.err
+
+# Test and editor artifacts
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage*
+.vscode/

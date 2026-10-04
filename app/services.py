@@ -2,18 +2,28 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from sqlalchemy import select
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import DEFAULT_TIMES, SCHEDULE_DAYS
-from app.models import WashSlot
+from app.config import DEFAULT_TIMES, LOCAL_TZ, SCHEDULE_DAYS, as_local, now_local
+from app.models import (
+    AdminAuditLog,
+    Booking,
+    LaundryRoom,
+    Machine,
+    PersistentLogin,
+    UserNotification,
+    WaitlistEntry,
+    WardenAuditLog,
+    WashSlot,
+)
 
 
 def week_start(date: datetime) -> datetime:
-    d = date.date()
-    # Monday = 0
+    local_date = as_local(date) or date
+    d = local_date.date()
     diff = d.weekday()
-    return datetime.combine(d - timedelta(days=diff), datetime.min.time())
+    return datetime.combine(d - timedelta(days=diff), datetime.min.time(), tzinfo=LOCAL_TZ)
 
 
 def get_slot_end_server_time(slot: WashSlot, server_now: datetime) -> datetime | None:
@@ -43,7 +53,7 @@ def get_slot_end_server_time(slot: WashSlot, server_now: datetime) -> datetime |
     if end <= start:
         end_date = end_date + timedelta(days=1)
 
-    return datetime.combine(end_date.date(), datetime.min.time()) + end
+    return datetime.combine(end_date.date(), datetime.min.time(), tzinfo=LOCAL_TZ) + end
 
 
 def clear_reservation(slot: WashSlot) -> None:
@@ -54,7 +64,7 @@ def clear_reservation(slot: WashSlot) -> None:
 
 
 async def cleanup_expired_reservations(db: AsyncSession, server_now: datetime | None = None) -> int:
-    now = server_now or datetime.now()
+    now = as_local(server_now) or now_local()
     current_week = week_start(now)
 
     result = await db.execute(
@@ -79,7 +89,10 @@ async def cleanup_expired_reservations(db: AsyncSession, server_now: datetime | 
                 slot.ReservationExpiresAt = expires_at
                 changed = True
 
-        if slot.ReservationExpiresAt is not None and slot.ReservationExpiresAt <= now:
+        if (
+            slot.ReservationExpiresAt is not None
+            and (as_local(slot.ReservationExpiresAt) or slot.ReservationExpiresAt) <= now
+        ):
             clear_reservation(slot)
             changed = True
             expired_count += 1
@@ -90,24 +103,85 @@ async def cleanup_expired_reservations(db: AsyncSession, server_now: datetime | 
     return expired_count
 
 
+async def cleanup_old_data(db: AsyncSession, now: datetime | None = None) -> dict[str, int]:
+    current_time = as_local(now) or now_local()
+    cutoff = current_time - timedelta(days=30)
+
+    await db.execute(
+        update(UserNotification)
+        .where(
+            UserNotification.BookingId.in_(
+                select(Booking.Id).where(Booking.EndsAt <= cutoff)
+            )
+        )
+        .values(BookingId=None)
+    )
+    deleted = {
+        "bookings": (
+            await db.execute(delete(Booking).where(Booking.EndsAt <= cutoff))
+        ).rowcount
+        or 0,
+        "audit_logs": (
+            await db.execute(delete(AdminAuditLog).where(AdminAuditLog.CreatedAt <= cutoff))
+        ).rowcount
+        or 0,
+        "warden_audit_logs": (
+            await db.execute(delete(WardenAuditLog).where(WardenAuditLog.CreatedAt <= cutoff))
+        ).rowcount
+        or 0,
+        "notifications": (
+            await db.execute(delete(UserNotification).where(UserNotification.CreatedAt <= cutoff))
+        ).rowcount
+        or 0,
+        "waitlist_entries": (
+            await db.execute(delete(WaitlistEntry).where(WaitlistEntry.CreatedAt <= cutoff))
+        ).rowcount
+        or 0,
+        "expired_logins": (
+            await db.execute(delete(PersistentLogin).where(PersistentLogin.ExpiresAt <= current_time))
+        ).rowcount
+        or 0,
+    }
+    if any(deleted.values()):
+        await db.commit()
+    return deleted
+
+
 async def seed_wash_slots(db: AsyncSession) -> None:
     result = await db.execute(select(WashSlot))
     existing = list(result.scalars().all())
 
-    if existing:
-        is_old = len(existing) == 42 or any(
-            x.Time in ("11:00–14:00", "02:00–03:00") for x in existing
-        )
-        if not is_old:
-            return
+    is_old = bool(existing) and (
+        len(existing) == 42
+        or any(x.Time in ("11:00–14:00", "02:00–03:00") for x in existing)
+    )
+    if is_old:
         for slot in existing:
             await db.delete(slot)
-        await db.commit()
+        await db.flush()
 
-    slots = [
-        WashSlot(Day=day, Time=time, Status="Свободно")
-        for day in SCHEDULE_DAYS
-        for time in DEFAULT_TIMES
-    ]
-    db.add_all(slots)
+    rooms = (await db.execute(select(LaundryRoom))).scalars().all()
+    for room in rooms:
+        machine_id = await db.scalar(
+            select(Machine.Id).where(Machine.LaundryRoomId == room.Id)
+        )
+        if machine_id is None:
+            db.add(
+                Machine(
+                    LaundryRoomId=room.Id,
+                    Name="Машина №1",
+                    Status="Свободна",
+                    UpdatedAt=now_local(),
+                )
+            )
+
+        has_slots = await db.scalar(
+            select(WashSlot.Id).where(WashSlot.LaundryRoomId == room.Id).limit(1)
+        )
+        if has_slots is None:
+            db.add_all(
+                WashSlot(Day=day, Time=time, Status="Свободно", LaundryRoomId=room.Id)
+                for day in SCHEDULE_DAYS
+                for time in DEFAULT_TIMES
+            )
     await db.commit()

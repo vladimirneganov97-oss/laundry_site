@@ -1,4 +1,31 @@
 document.addEventListener("DOMContentLoaded", () => {
+    const laundryRoomFloor = document.querySelector("[data-laundry-room-floor]");
+    const laundryRoomNumber = document.querySelector("[data-laundry-room-number]");
+    if (laundryRoomFloor && laundryRoomNumber) {
+        const syncRoomOptions = () => {
+            const floor = laundryRoomFloor.value;
+            const availableOptions = [...laundryRoomNumber.options]
+                .filter(option => option.dataset.floor === floor);
+            laundryRoomNumber.querySelectorAll("option").forEach(option => {
+                option.hidden = option.dataset.floor !== floor;
+                option.disabled = option.hidden;
+            });
+            if (!availableOptions.some(option => option.value === laundryRoomNumber.value)) {
+                laundryRoomNumber.value = availableOptions[0]?.value || "";
+            }
+        };
+
+        laundryRoomFloor.addEventListener("change", syncRoomOptions);
+        laundryRoomNumber.addEventListener("change", () => {
+            const selectedOption = laundryRoomNumber.selectedOptions[0];
+            if (selectedOption?.dataset.floor) {
+                laundryRoomFloor.value = selectedOption.dataset.floor;
+                syncRoomOptions();
+            }
+        });
+        syncRoomOptions();
+    }
+
     // Names and surnames: allow letters only. Server-side validation remains authoritative.
     document.querySelectorAll("[data-letters-only]").forEach((input) => {
         input.addEventListener("input", () => {
@@ -6,20 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 .filter((char) => /\p{L}/u.test(char))
                 .slice(0, 30)
                 .join("");
-        
-    const announcementFile = document.getElementById("announcementFile");
-    const fileStatus = document.getElementById("fileStatus");
-    if (announcementFile && fileStatus) {
-        announcementFile.addEventListener("change", () => {
-            if (announcementFile.files.length) {
-                fileStatus.style.display = "block";
-                fileStatus.textContent = "📎 Добавлено: " + announcementFile.files[0].name;
-            } else {
-                fileStatus.style.display = "none";
-            }
         });
-    }
-});
     });
 
     // Room number: integer from 1 to 1000.
@@ -84,21 +98,56 @@ document.addEventListener("DOMContentLoaded", () => {
         const adminPanels = document.querySelectorAll("[data-admin-panel]");
         if (!adminTabs.length) return;
 
-        const adminStorageKey = "laundry-admin-active-tab";
-        const serverTab = document.body.dataset.adminActiveTab || "";
+        const isWardenShell = document.querySelector(".warden-shell") !== null;
+        const adminStorageKey = isWardenShell
+            ? "laundry-warden-active-tab"
+            : "laundry-admin-active-tab";
+        const serverTab = isWardenShell
+            ? document.body.dataset.wardenActiveTab || ""
+            : document.body.dataset.adminActiveTab || "";
         const queryTab = new URLSearchParams(window.location.search).get("tab") || "";
         const hashTab = window.location.hash.replace("#", "");
         const savedTab = localStorage.getItem(adminStorageKey) || "";
-        const requested = [serverTab, queryTab, hashTab, savedTab]
+        const isMobileAdmin = window.matchMedia("(max-width: 1000px)").matches;
+        const explicitTab = [queryTab, hashTab]
             .map(x => x.trim().toLowerCase())
-            .find(x => [...adminTabs].some(t => t.dataset.adminTab === x)) || "accounts";
+            .find(x => [...adminTabs].some(t => t.dataset.adminTab === x));
+        const requested = explicitTab || (
+            isMobileAdmin ? "" : savedTab.trim().toLowerCase() || serverTab.trim().toLowerCase() || "accounts"
+        );
+        const adminShell = document.querySelector(".admin-shell");
 
-        function activateAdminTab(target, updateUrl = true) {
+        adminPanels.forEach((panel) => {
+            if (panel.querySelector(".admin-mobile-back")) return;
+            const backButton = document.createElement("button");
+            backButton.type = "button";
+            backButton.className = "admin-mobile-back";
+            backButton.textContent = "← К разделам";
+            backButton.addEventListener("click", () => {
+                adminShell?.classList.remove("admin-section-open");
+                adminTabs.forEach(tab => tab.classList.remove("active"));
+                adminPanels.forEach(item => item.classList.remove("active"));
+                localStorage.removeItem(adminStorageKey);
+                if (history.replaceState) {
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete("tab");
+                    history.replaceState(null, "", url.pathname + url.search + url.hash);
+                }
+            });
+            panel.prepend(backButton);
+        });
+
+        function activateAdminTab(target, updateUrl = true, openMobilePanel = false) {
             const tab = [...adminTabs].find(t => t.dataset.adminTab === target);
             if (!tab) return;
             adminTabs.forEach((t) => t.classList.toggle("active", t === tab));
             adminPanels.forEach((panel) => panel.classList.toggle("active", panel.dataset.adminPanel === target));
             localStorage.setItem(adminStorageKey, target);
+            if (adminShell) adminShell.dataset.activeAdminTab = target;
+            document.body.dataset.adminActiveTab = target;
+            if (adminShell && window.matchMedia("(max-width: 1000px)").matches) {
+                adminShell.classList.toggle("admin-section-open", openMobilePanel);
+            }
             if (updateUrl && history.replaceState) {
                 const url = new URL(window.location.href);
                 url.searchParams.set("tab", target);
@@ -110,9 +159,18 @@ document.addEventListener("DOMContentLoaded", () => {
         adminTabs.forEach((tab) => {
             if (tab.dataset.bound === "1") return;
             tab.dataset.bound = "1";
-            tab.addEventListener("click", () => activateAdminTab(tab.dataset.adminTab));
+            tab.addEventListener("click", () => {
+                const openMobilePanel = window.matchMedia("(max-width: 1000px)").matches;
+                activateAdminTab(tab.dataset.adminTab, true, openMobilePanel);
+            });
         });
-        activateAdminTab(requested, false);
+        if (requested) {
+            activateAdminTab(requested, false, isMobileAdmin && Boolean(explicitTab));
+        } else {
+            adminTabs.forEach(tab => tab.classList.remove("active"));
+            adminPanels.forEach(panel => panel.classList.remove("active"));
+            adminShell?.classList.remove("admin-section-open");
+        }
     }
     initAdminTabs();
 
@@ -152,6 +210,47 @@ document.addEventListener("DOMContentLoaded", () => {
     const drawerBackdrop = document.getElementById("side-drawer-backdrop");
     let drawerType = null;
     let drawerKey = null;
+
+    document.addEventListener("click", async event => {
+        const button = event.target.closest?.("[data-copy-account-id]");
+        if (!button) return;
+
+        const accountId = button.dataset.copyAccountId || "";
+        const status = button.closest(".account-id-card")?.querySelector(".account-id-copy-status");
+        let copied = false;
+
+        try {
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(accountId);
+                copied = true;
+            }
+        } catch (_) {
+            copied = false;
+        }
+
+        if (!copied) {
+            const temporaryInput = document.createElement("textarea");
+            temporaryInput.value = accountId;
+            temporaryInput.setAttribute("readonly", "");
+            temporaryInput.style.position = "fixed";
+            temporaryInput.style.opacity = "0";
+            document.body.appendChild(temporaryInput);
+            temporaryInput.select();
+            try {
+                copied = document.execCommand("copy");
+            } catch (_) {
+                copied = false;
+            } finally {
+                temporaryInput.remove();
+            }
+        }
+
+        if (status) status.textContent = copied ? "ID скопирован." : "Не удалось скопировать. Выделите ID вручную.";
+        if (copied) {
+            button.textContent = "Скопировано";
+            window.setTimeout(() => { button.textContent = "Скопировать"; }, 1800);
+        }
+    });
 
     function closeSidePanel() {
         if (!drawer) return;
@@ -338,34 +437,77 @@ document.addEventListener("DOMContentLoaded", () => {
         return !!active && ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(active.tagName);
     }
 
+    document.addEventListener("input", markFormChanges);
+    document.addEventListener("change", markFormChanges);
+    document.addEventListener("submit", (event) => {
+        if (event.target instanceof HTMLFormElement) {
+            event.target.dataset.dirty = "false";
+        }
+    });
+
+    function markFormChanges(event) {
+        const form = event.target?.form;
+        if (form instanceof HTMLFormElement) {
+            form.dataset.dirty = "true";
+        }
+    }
+
+    let adminRefreshInProgress = false;
+    function comparablePanelContent(panel) {
+        const clone = panel.cloneNode(true);
+        clone.querySelectorAll(".admin-mobile-back").forEach(button => button.remove());
+        return clone.innerHTML;
+    }
+
     async function refreshAdminSilently() {
+        if (document.hidden || adminRefreshInProgress || document.querySelector(".warden-shell")) return;
         const shell = document.querySelector(".admin-shell");
-        if (!shell || hasActiveEditor()) return;
-        const activePanel = document.querySelector("[data-admin-panel].active");
+        const scheduleForm = shell?.querySelector("#scheduleChangesForm");
+        if (!shell || hasActiveEditor() || scheduleForm?.dataset.dirty === "true") return;
         const activeTab = document.querySelector("[data-admin-tab].active")?.dataset.adminTab || "accounts";
+        const activePanel = shell.querySelector(`[data-admin-panel="${activeTab}"]`);
+        if (!activePanel || activePanel.querySelector('form[data-dirty="true"]')) return;
+        adminRefreshInProgress = true;
         try {
-            const response = await fetch("/Admin?tab=" + encodeURIComponent(activeTab), { credentials: "same-origin", cache: "no-store" });
+            const refreshUrl = new URL("/Admin", window.location.origin);
+            refreshUrl.search = window.location.search;
+            refreshUrl.searchParams.set("tab", activeTab);
+            const response = await fetch(refreshUrl, { credentials: "same-origin", cache: "no-store" });
             if (!response.ok) return;
             const html = await response.text();
             const doc = new DOMParser().parseFromString(html, "text/html");
             const fresh = doc.querySelector(".admin-shell");
-            if (!fresh) return;
-            if (fresh.innerHTML !== shell.innerHTML) {
-                const scrollY = window.scrollY;
-                fresh.classList.add("live-refresh-in");
-                shell.replaceWith(fresh);
-                requestAnimationFrame(() => fresh.classList.remove("live-refresh-in"));
-                initAdminTabs();
-                window.scrollTo(0, scrollY);
-                if (document.querySelector("[data-side-panel=admin-chat]")) {
-                    document.querySelector("[data-side-panel=admin-chat]").addEventListener("click", event => { event.preventDefault(); loadSidePanel("admin-chat"); });
+            const freshPanel = fresh?.querySelector(`[data-admin-panel="${activeTab}"]`);
+            if (!fresh || !freshPanel) return;
+
+            const currentTabButtons = shell.querySelectorAll("[data-admin-tab]");
+            currentTabButtons.forEach(button => {
+                const freshButton = [...fresh.querySelectorAll("[data-admin-tab]")]
+                    .find(candidate => candidate.dataset.adminTab === button.dataset.adminTab);
+                const currentBadge = button.querySelector(".tab-badge");
+                const freshBadge = freshButton?.querySelector(".tab-badge");
+                if (currentBadge && freshBadge &&
+                    (currentBadge.textContent !== freshBadge.textContent || currentBadge.hidden !== freshBadge.hidden)) {
+                    currentBadge.textContent = freshBadge.textContent;
+                    currentBadge.hidden = freshBadge.hidden;
                 }
+            });
+
+            if (comparablePanelContent(freshPanel) !== comparablePanelContent(activePanel)) {
+                freshPanel.classList.toggle("active", activePanel.classList.contains("active"));
+                freshPanel.classList.add("live-refresh-in");
+                activePanel.replaceWith(freshPanel);
+                requestAnimationFrame(() => freshPanel.classList.remove("live-refresh-in"));
+                initAdminTabs();
             }
-        } catch (_) { }
+        } catch (_) {
+        } finally {
+            adminRefreshInProgress = false;
+        }
     }
 
     async function refreshScheduleSilently() {
-        if (!document.querySelector(".schedule") || hasActiveEditor()) return;
+        if (document.hidden || !document.querySelector(".schedule") || hasActiveEditor()) return;
         try {
             const response = await fetch(window.location.pathname + window.location.search, { credentials: "same-origin", cache: "no-store" });
             if (!response.ok) return;
@@ -381,8 +523,8 @@ document.addEventListener("DOMContentLoaded", () => {
         } catch (_) { }
     }
 
-    if (document.querySelector(".admin-shell")) window.setInterval(refreshAdminSilently, 5000);
-    if (document.querySelector(".schedule")) window.setInterval(refreshScheduleSilently, 5000);
+    if (document.querySelector(".admin-shell:not(.warden-shell)")) window.setInterval(refreshAdminSilently, 10000);
+    if (document.querySelector(".schedule")) window.setInterval(refreshScheduleSilently, 10000);
 
 });
 
@@ -408,10 +550,11 @@ document.addEventListener("DOMContentLoaded", function(){
  if(file && status){
    file.addEventListener("change", function(){
      if(file.files.length){
-       status.style.display="block";
+       status.hidden=false;
        status.textContent="📎 Добавлено: " + file.files[0].name;
      } else {
-       status.style.display="none";
+       status.hidden=true;
+       status.textContent="";
      }
    });
  }

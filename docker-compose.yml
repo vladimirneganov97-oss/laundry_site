@@ -1,0 +1,19 @@
+services:
+  app:
+    build: .
+    container_name: laundry_fastapi
+    restart: unless-stopped
+    init: true
+    environment:
+      LAUNDRY_DB_PATH: /data/laundry.db
+      LAUNDRY_ADMIN_PASSWORD: ${LAUNDRY_ADMIN_PASSWORD:?Set LAUNDRY_ADMIN_PASSWORD in .env}
+      LAUNDRY_SESSION_SECRET: ${LAUNDRY_SESSION_SECRET:?Set LAUNDRY_SESSION_SECRET in .env}
+    ports:
+      - "${PORT:-8000}:8000"
+    volumes:
+      - laundry_data:/data
+      - laundry_uploads:/app/static/uploads
+
+volumes:
+  laundry_data:
+  laundry_uploads:

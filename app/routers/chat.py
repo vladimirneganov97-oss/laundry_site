@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -12,7 +12,8 @@ from sqlalchemy.orm import selectinload
 from app.auth import get_session_user_id
 from app.config import BASE_DIR
 from app.database import get_db
-from app.models import ChatMessage, RegistrationKey, RegistrationRequest
+from app.models import ChatMessage, RegistrationKey, RegistrationRequest, User, WardenAccount
+from app.security_limits import check_rate_limit
 
 router = APIRouter(prefix="/Chat", tags=["chat"])
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
@@ -46,13 +47,29 @@ async def find_request_by_key(db: AsyncSession, key: str) -> RegistrationRequest
 @router.get("", response_class=HTMLResponse)
 async def chat_index(request: Request, key: str | None = None, db: AsyncSession = Depends(get_db)):
     user_id = get_session_user_id(request)
+    account_public_id = ""
 
     if user_id is not None:
+        current_user = await db.get(User, user_id)
+        account_public_id = current_user.PublicId if current_user is not None else ""
         approved_ids = (
             await db.execute(
                 select(RegistrationRequest.Id).where(RegistrationRequest.ApprovedUserId == user_id)
             )
         ).scalars().all()
+        latest_registration = (
+            await db.execute(
+                select(RegistrationRequest)
+                .where(RegistrationRequest.ApprovedUserId == user_id)
+                .order_by(RegistrationRequest.ReviewedAt.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        chat_warden = (
+            await db.get(WardenAccount, latest_registration.WardenId)
+            if latest_registration is not None and latest_registration.WardenId is not None
+            else None
+        )
         conditions = [ChatMessage.UserId == user_id]
         if approved_ids:
             conditions.append(
@@ -71,6 +88,8 @@ async def chat_index(request: Request, key: str | None = None, db: AsyncSession 
                 "need_key": False,
                 "error": None,
                 "reg_request": None,
+                "chat_warden": chat_warden,
+                "account_public_id": account_public_id,
             },
         )
 
@@ -85,6 +104,8 @@ async def chat_index(request: Request, key: str | None = None, db: AsyncSession 
                 "need_key": True,
                 "error": None,
                 "reg_request": None,
+                "chat_warden": None,
+                "account_public_id": account_public_id,
             },
         )
 
@@ -99,6 +120,8 @@ async def chat_index(request: Request, key: str | None = None, db: AsyncSession 
                 "need_key": False,
                 "error": "Заявка с таким ключом не найдена.",
                 "reg_request": None,
+                "chat_warden": None,
+                "account_public_id": account_public_id,
             },
         )
 
@@ -109,6 +132,17 @@ async def chat_index(request: Request, key: str | None = None, db: AsyncSession 
             .order_by(ChatMessage.CreatedAt)
         )
     ).scalars().all()
+    chat_warden = (
+        await db.get(WardenAccount, reg_request.WardenId)
+        if reg_request.WardenId is not None
+        else None
+    )
+    approved_user = (
+        await db.get(User, reg_request.ApprovedUserId)
+        if reg_request.ApprovedUserId is not None
+        else None
+    )
+    account_public_id = approved_user.PublicId if approved_user is not None else ""
     await mark_admin_messages_read(db, list(messages))
     return templates.TemplateResponse(
         "chat/index.html",
@@ -119,6 +153,8 @@ async def chat_index(request: Request, key: str | None = None, db: AsyncSession 
             "need_key": False,
             "error": None,
             "reg_request": reg_request,
+            "chat_warden": chat_warden,
+            "account_public_id": account_public_id,
         },
     )
 
@@ -154,6 +190,17 @@ async def chat_send(
             return RedirectResponse(f"/Chat/Index?key={key}", status_code=303)
         request_id = reg_request.Id
         user_id = reg_request.ApprovedUserId
+
+    rate_keys = [f"chat:ip:{request.client.host if request.client else 'unknown'}"]
+    if user_id is not None:
+        rate_keys.append(f"chat:user:{user_id}")
+    for rate_key in rate_keys:
+        allowed, retry_after = await check_rate_limit(db, rate_key, 5, timedelta(seconds=10))
+        if not allowed:
+            return HTMLResponse(
+                f"Слишком много сообщений. Подождите {retry_after} сек. и попробуйте снова.",
+                status_code=429,
+            )
 
     db.add(
         ChatMessage(

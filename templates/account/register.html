@@ -2,23 +2,173 @@
 {% block content %}
 <div class="card form-card">
     <h1>Регистрация по ключу</h1>
-    <p>Введите данные и действующий ключ регистрации. После отправки заявку должен подтвердить администратор.</p>
+    <p>Выберите этаж и постирочную, а затем получателя заявки. Если к постирочной не прикреплён староста, заявку можно отправить администратору. Ключ регистрации должен быть выдан для выбранной постирочной.</p>
+    <p class="muted">Черновик формы сохраняется в этой вкладке после перезагрузки. Пароль и его подтверждение не сохраняются.</p>
     {% if registration_pending %}
         <div class="notice">{{ registration_pending }}</div>
-        <button type="button" class="small white-button login-chat-button" data-side-panel="user-chat">💬 Связаться с админом</button>
+        <button type="button" class="small white-button login-chat-button" data-side-panel="user-chat">💬 Чат со старостой</button>
     {% endif %}
     <form action="/Account/Register" method="post">
         {% if errors %}
             <div class="error">{% for e in errors %}<div>{{ e }}</div>{% endfor %}</div>
         {% endif %}
+        <fieldset id="registration-fields" style="border:0;margin:0;padding:0" {% if registration_blocked|default(false) %}disabled{% endif %}>
         <label>Имя<input name="firstName" required maxlength="30" autocomplete="given-name" pattern="[A-Za-zА-Яа-яЁё]+" title="Только буквы, максимум 30 символов" data-letters-only /></label>
         <label>Фамилия<input name="lastName" required maxlength="30" autocomplete="family-name" pattern="[A-Za-zА-Яа-яЁё]+" title="Только буквы, максимум 30 символов" data-letters-only /></label>
-        <label>Номер комнаты<input name="roomNumber" required type="number" min="1" max="1000" step="1" inputmode="numeric" /></label>
+        <label>Этаж постирочной
+            <select id="registration-floor" name="floor" required>
+                <option value="">Выберите этаж</option>
+                {% for floor in registration_floors|default([]) %}
+                    <option value="{{ floor }}">{{ floor }} этаж</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Постирочная
+            <select id="registration-room" name="laundryRoomId" required disabled>
+                <option value="">Сначала выберите этаж</option>
+                {% for room in registration_rooms|default([]) %}
+                    <option value="{{ room.Id }}" data-floor="{{ room.Floor }}" hidden>{{ room.Name }} · этаж {{ room.Floor }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label>Кому отправить заявку
+            <select id="registration-warden" name="wardenId" required disabled>
+                <option value="">Сначала выберите постирочную</option>
+                {% for warden in registration_wardens|default([]) %}
+                    <option value="{{ warden.Id }}" data-room-ids="{{ warden.RoomIds|join(',') }}" data-universal="{{ 'true' if warden.IsUniversal else 'false' }}" hidden>{{ warden.DisplayName }}{% if warden.IsUniversal %} · универсальный{% endif %}</option>
+                {% endfor %}
+                <option value="0" data-admin-recipient hidden>Администратор</option>
+            </select>
+        </label>
+        <label>Номер вашей комнаты<input name="roomNumber" required type="number" min="1" max="1000" step="1" inputmode="numeric" /></label>
         <label>Пароль<div class="password-field"><input id="register-password" name="password" type="password" minlength="8" required autocomplete="new-password" /><button type="button" class="password-toggle eye-toggle" data-password-toggle="register-password" aria-label="Показать пароль" aria-pressed="false" title="Показать пароль"><span class="eye-icon" aria-hidden="true">👁</span></button></div></label>
         <label>Повторите пароль<div class="password-field"><input id="register-password-confirm" name="passwordConfirm" type="password" minlength="8" required autocomplete="new-password" /><button type="button" class="password-toggle eye-toggle" data-password-toggle="register-password-confirm" aria-label="Показать пароль" aria-pressed="false" title="Показать пароль"><span class="eye-icon" aria-hidden="true">👁</span></button></div></label>
-        <label>Ключ регистрации<input name="registrationKey" required maxlength="32" autocomplete="off" autocapitalize="characters" placeholder="XXXX-XXXX-XXXX-XXXX" /></label>
-        <button class="button" type="submit">Отправить заявку</button>
+        <label>Ключ регистрации<input id="registration-key" name="registrationKey" required maxlength="32" autocomplete="off" autocapitalize="characters" placeholder="XXXX-XXXX-XXXX-XXXX" {% if key_lock_seconds|default(0) > 0 %}disabled{% endif %} /></label>
+        <button id="registration-submit" class="button" type="submit" {% if key_lock_seconds|default(0) > 0 %}disabled{% endif %}>Отправить заявку</button>
+        </fieldset>
+        {% if key_lock_seconds|default(0) > 0 %}
+            <p id="registration-key-lock" data-seconds="{{ key_lock_seconds }}">Повторный ввод ключа доступен через {{ key_lock_seconds }} сек.</p>
+            <script>
+                (() => {
+                    const notice = document.getElementById("registration-key-lock");
+                    const fields = document.getElementById("registration-fields");
+                    const key = document.getElementById("registration-key");
+                    const submit = document.getElementById("registration-submit");
+                    let seconds = Number(notice.dataset.seconds);
+                    const timer = window.setInterval(() => {
+                        seconds -= 1;
+                        if (seconds <= 0) {
+                            window.clearInterval(timer);
+                            fields.disabled = false;
+                            key.disabled = false;
+                            submit.disabled = false;
+                            notice.textContent = "Можно повторить ввод ключа.";
+                            return;
+                        }
+                        notice.textContent = `Повторный ввод ключа доступен через ${seconds} сек.`;
+                    }, 1000);
+                })();
+            </script>
+        {% endif %}
     </form>
+    <script>
+        (() => {
+            const floorSelect = document.getElementById("registration-floor");
+            const roomSelect = document.getElementById("registration-room");
+            const wardenSelect = document.getElementById("registration-warden");
+            const form = document.querySelector('form[action="/Account/Register"]');
+            if (!floorSelect || !roomSelect || !wardenSelect || !form) return;
+            const roomOptions = [...roomSelect.querySelectorAll("option[data-floor]")];
+            const wardenOptions = [...wardenSelect.querySelectorAll("option[data-room-ids]")];
+            const adminOption = wardenSelect.querySelector("option[data-admin-recipient]");
+            const draftKey = "laundry.registration-form-draft.v1";
+            let draft = {};
+            try {
+                draft = JSON.parse(sessionStorage.getItem(draftKey) || "{}");
+            } catch (error) {
+                console.error("Не удалось восстановить черновик регистрации.", error);
+                sessionStorage.removeItem(draftKey);
+            }
+            const refreshRooms = () => {
+                const floor = floorSelect.value;
+                let visible = 0;
+                for (const option of roomOptions) {
+                    option.hidden = option.dataset.floor !== floor;
+                    if (!option.hidden) visible += 1;
+                }
+                roomSelect.value = "";
+                roomSelect.disabled = !floor || visible === 0;
+                roomSelect.options[0].textContent = floor
+                    ? (visible ? "Выберите постирочную" : "На этом этаже нет доступных постирочных")
+                    : "Сначала выберите этаж";
+                refreshWardens();
+            };
+            const refreshWardens = () => {
+                const roomId = roomSelect.value;
+                const matchingSpecific = wardenOptions.some(option =>
+                    option.dataset.universal !== "true" &&
+                    option.dataset.roomIds.split(",").includes(roomId)
+                );
+                let visible = 0;
+                for (const option of wardenOptions) {
+                    const isUniversal = option.dataset.universal === "true";
+                    const assigned = option.dataset.roomIds.split(",").includes(roomId);
+                    option.hidden = !roomId || (isUniversal ? matchingSpecific : !assigned);
+                    if (!option.hidden) visible += 1;
+                }
+                if (adminOption) {
+                    adminOption.hidden = !roomId || matchingSpecific;
+                    if (!adminOption.hidden) visible += 1;
+                }
+                wardenSelect.value = "";
+                wardenSelect.disabled = !roomId || visible === 0;
+                wardenSelect.options[0].textContent = !roomId
+                    ? "Сначала выберите постирочную"
+                    : (visible ? "Выберите получателя" : "Получатель недоступен");
+            };
+            floorSelect.addEventListener("change", refreshRooms);
+            roomSelect.addEventListener("change", refreshWardens);
+            refreshRooms();
+
+            const dependentFields = new Set(["floor", "laundryRoomId", "wardenId"]);
+            const savedFields = [...form.querySelectorAll("input[name], select[name], textarea[name]")]
+                .filter(field => field.name && field.type !== "password" && field.type !== "hidden");
+            for (const field of savedFields) {
+                if (!dependentFields.has(field.name) && Object.hasOwn(draft, field.name)) {
+                    field.value = draft[field.name];
+                }
+            }
+            if (draft.floor) {
+                floorSelect.value = draft.floor;
+                refreshRooms();
+            }
+            if (draft.laundryRoomId) {
+                roomSelect.value = draft.laundryRoomId;
+                if (roomSelect.value === String(draft.laundryRoomId)) {
+                    refreshWardens();
+                }
+            }
+            if (draft.wardenId) {
+                const option = [...wardenSelect.options].find(item => item.value === String(draft.wardenId));
+                if (option && !option.hidden) {
+                    wardenSelect.value = option.value;
+                }
+            }
+            const saveDraft = () => {
+                const values = {};
+                for (const field of savedFields) {
+                    values[field.name] = field.value;
+                }
+                try {
+                    sessionStorage.setItem(draftKey, JSON.stringify(values));
+                } catch (error) {
+                    console.error("Не удалось сохранить черновик регистрации.", error);
+                }
+            };
+            form.addEventListener("input", saveDraft);
+            form.addEventListener("change", saveDraft);
+        })();
+    </script>
     <hr />
     <h2>Проверить заявку</h2>
     {% if status %}

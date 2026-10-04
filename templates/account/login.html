@@ -1,28 +1,30 @@
 {% extends "layout.html" %}
 {% block content %}
+{% set pending_admin = registration_pending and 'администратору' in registration_pending %}
 <div class="card form-card">
     <h1>Войти в аккаунт</h1>
     <p>Для входа используйте ваш ID аккаунта и пароль.</p>
     {% if registration_pending %}
         <div class="notice">{{ registration_pending }}</div>
+        <script>sessionStorage.removeItem("laundry.registration-form-draft.v1");</script>
     {% endif %}
     {% if errors %}
         <div class="error">{% for e in errors %}<div>{{ e }}</div>{% endfor %}</div>
     {% endif %}
     <form action="/Account/Login" method="post">
-        <label>ID аккаунта<input name="publicId" required maxlength="32" autocomplete="username" /></label>
+        <label>ID аккаунта<input name="publicId" value="{{ public_id|default('') }}" required maxlength="32" autocomplete="username" /></label>
         <label>Пароль<div class="password-field"><input id="login-password" name="password" type="password" required autocomplete="current-password" /><button type="button" class="password-toggle eye-toggle" data-password-toggle="login-password" aria-label="Показать пароль" aria-pressed="false" title="Показать пароль"><span class="eye-icon" aria-hidden="true">👁</span></button></div></label>
         <button class="button" type="submit">Войти</button>
     </form>
     {% if request.session.get('PendingRegistrationKey') %}
         <hr />
-        <h2>Связь с админом</h2>
+        <h2>{{ "Чат с администратором" if pending_admin else "Чат со старостой" }}</h2>
         <p>Ключ уже сохранён после отправки заявки. Повторно вводить его не нужно.</p>
-        <button type="button" class="small white-button login-chat-button" data-side-panel="user-chat"{% if open_registration_chat %} data-auto-open-chat="1"{% endif %}>💬 Связаться с админом</button>
+        <button type="button" class="small white-button login-chat-button" data-side-panel="user-chat"{% if open_registration_chat %} data-auto-open-chat="1"{% endif %}>💬 {{ "Открыть чат с администратором" if pending_admin else "Открыть чат со старостой" }}</button>
     {% else %}
         <hr />
-        <h2>Связь с админом</h2>
-        <p>После отправки заявки чат будет доступен здесь автоматически.</p>
+        <h2>Чат с получателем заявки</h2>
+        <p>После отправки заявки чат с выбранным старостой или администратором будет доступен здесь автоматически.</p>
     {% endif %}
     <p>Нет аккаунта? <a href="/Account/Register">Зарегистрироваться</a></p>
 </div>

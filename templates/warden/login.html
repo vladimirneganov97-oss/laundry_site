@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="card form-card">
+    <h1>Вход старосты</h1>
+    <p>Войдите по ID старосты и паролю, выданным администратором.</p>
+    {% if errors %}
+        <div class="error">{% for error in errors %}<div>{{ error }}</div>{% endfor %}</div>
+    {% endif %}
+    <form action="/Warden/Login" method="post">
+        <label>ID старосты<input name="publicId" required maxlength="32" autocomplete="username" autocapitalize="characters" spellcheck="false" /></label>
+        <label>Пароль<input name="password" type="password" required autocomplete="current-password" /></label>
+        <button class="button" type="submit">Войти</button>
+    </form>
+</div>
+{% endblock %}

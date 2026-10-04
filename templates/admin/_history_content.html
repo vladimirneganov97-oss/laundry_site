@@ -1,0 +1,17 @@
+<form method="get" action="{% if history_embedded|default(false) %}/Admin{% else %}/Admin/History{% endif %}" class="history-filter">
+    {% if history_embedded|default(false) %}<input type="hidden" name="tab" value="history" />{% endif %}
+    <label>Пользователь, ID или комната<input name="{% if history_embedded|default(false) %}history_q{% else %}q{% endif %}" value="{{ history_q if history_embedded|default(false) else q }}" /></label>
+    <label>С даты<input type="date" name="{% if history_embedded|default(false) %}history_date_from{% else %}date_from{% endif %}" value="{{ (history_date_from if history_embedded|default(false) else date_from) or '' }}" /></label>
+    <label>По дату<input type="date" name="{% if history_embedded|default(false) %}history_date_to{% else %}date_to{% endif %}" value="{{ (history_date_to if history_embedded|default(false) else date_to) or '' }}" /></label>
+    <button class="small white-button" type="submit">Найти</button>
+</form>
+<div class="table-wrap"><table>
+    <thead><tr><th>Дата</th><th>Время</th><th>Машина</th><th>Пользователь</th><th>ID</th><th>Комната</th><th>Статус</th></tr></thead>
+    <tbody>
+    {% for booking, user, booking_warden, slot in rows %}
+        <tr><td>{{ booking.StartsAt.strftime("%d.%m.%Y") }}</td><td>{{ booking.StartsAt.strftime("%H:%M") }}–{{ booking.EndsAt.strftime("%H:%M") }}</td><td>№1</td><td>{% if user %}{{ user.FirstName }} {{ user.LastName }}{% elif booking_warden %}Староста: {{ booking_warden.DisplayName }}{% else %}Удалённый пользователь{% endif %}</td><td>{{ user.PublicId if user else booking_warden.PublicId if booking_warden else "—" }}</td><td>{{ user.RoomNumber if user else "—" }}</td><td>{{ booking.Status }}</td></tr>
+    {% else %}
+        <tr><td colspan="7">Записей не найдено.</td></tr>
+    {% endfor %}
+    </tbody>
+</table></div>

@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+{% block content %}
+<section class="card form-card">
+    <h1>История стирок</h1>
+    <form method="get" action="/Home/History" class="history-filter">
+        <label>С даты<input type="date" name="date_from" value="{{ date_from or '' }}" /></label>
+        <label>По дату<input type="date" name="date_to" value="{{ date_to or '' }}" /></label>
+        <button class="small white-button" type="submit">Фильтровать</button>
+    </form>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Дата</th><th>Время</th><th>Машина</th><th>Статус</th><th></th></tr></thead>
+            <tbody>
+            {% for booking, slot in rows %}
+                <tr>
+                    <td>{{ booking.StartsAt.strftime("%d.%m.%Y") }}</td>
+                    <td>{{ booking.StartsAt.strftime("%H:%M") }}–{{ booking.EndsAt.strftime("%H:%M") }}</td>
+                    <td>№1</td>
+                    <td>{{ booking.Status }}</td>
+                    <td>{% if booking.Status == "Забронировано" and booking.StartsAt > server_now %}<form action="/Home/History/Cancel" method="post"><input type="hidden" name="id" value="{{ booking.Id }}" /><button class="small danger" type="submit">Отменить</button></form>{% endif %}</td>
+                </tr>
+            {% else %}
+                <tr><td colspan="5">История пока пуста.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <p><a href="/">Вернуться к расписанию</a></p>
+</section>
+{% endblock %}

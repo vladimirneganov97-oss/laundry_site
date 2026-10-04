@@ -4,24 +4,27 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>График стирки</title>
-    <link rel="stylesheet" href="/static/css/site.css" />
+    <link rel="stylesheet" href="/static/css/site.css?v=20261005-admin-key-align" />
 </head>
-<body data-admin-active-tab="{{ active_admin_tab|default('') }}" data-chat-key="{{ request.session.get('PendingRegistrationKey') or '' }}">
+<body data-admin-active-tab="{{ active_admin_tab|default('') }}" data-warden-active-tab="{{ active_warden_tab|default('') }}" data-chat-key="{{ request.session.get('PendingRegistrationKey') or '' }}">
 <header>
     <div class="wrap nav">
         <a class="brand" href="/">🧺 Постирочная</a>
         <nav>
             <a href="/">График</a>
-            <a href="#" class="announcement-nav-link" data-side-panel="announcements-board">📢 Объявления</a>
             {% if request.session.get('UserId') or request.session.get('PendingRegistrationKey') %}
-                <a href="/Chat/Index{% if request.session.get('PendingRegistrationKey') %}?key={{ request.session.get('PendingRegistrationKey') }}{% endif %}" class="chat-nav-link" data-side-panel="user-chat">💬 Связь с админом <b id="user-chat-badge" class="notification-badge" hidden>0</b></a>
+                <a href="/Chat/Index{% if request.session.get('PendingRegistrationKey') %}?key={{ request.session.get('PendingRegistrationKey') }}{% endif %}" class="chat-nav-link" data-side-panel="user-chat">💬 Чат со старостой <b id="user-chat-badge" class="notification-badge" hidden>0</b></a>
             {% endif %}
-            {% if request.session.get('UserName') %}
+            {% if request.session.get('WardenName') %}
+                <a href="/Warden">{{ request.session.get('WardenName') }} · кабинет старосты</a>
+                <a href="/Warden/Logout">Выйти</a>
+            {% elif request.session.get('UserName') %}
                 <span class="user">{{ request.session.get('UserName') }} · комната {{ request.session.get('Room') }} · ID {{ request.session.get('UserPublicId') }}</span>
                 <a href="/Account/Logout">Выйти</a>
             {% else %}
                 <a href="/Account/Login">Войти</a><a href="/Account/Register">Регистрация</a>
             {% endif %}
+            {% if not request.session.get('WardenName') %}<a href="/Warden/Login">Вход старосты</a>{% endif %}
             <a href="/Admin/Login">Админка</a>
         </nav>
     </div>
@@ -36,6 +39,6 @@
     <div id="side-drawer-content" class="side-drawer-content"></div>
 </aside>
 <footer class="security-footer">Пароли хранятся в базе в виде хэшей. Подключение по HTTP в локальной сети не шифрует передаваемые данные; для шифрования трафика нужен HTTPS.</footer>
-<script src="/static/js/site.js"></script>
+<script src="/static/js/site.js?v=20261005-laundry-room-numbers"></script>
 </body>
 </html>

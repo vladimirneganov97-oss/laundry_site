@@ -1,0 +1,21 @@
+<div class="statistics-grid">
+    <div class="notice"><strong>Пользователей</strong><div>{{ users_count }}</div></div>
+    <div class="notice"><strong>Бронирований</strong><div>{{ bookings_count }}</div></div>
+    <div class="notice"><strong>Сегодня</strong><div>{{ today_count }}</div></div>
+    <div class="notice"><strong>Отмен</strong><div>{{ cancellations_count }}</div></div>
+    <div class="notice"><strong>Машин</strong><div>{{ machines_count }}</div></div>
+</div>
+<h2>Бронирования по дням · последние 30 дней</h2>
+{% set daily_max = daily.values()|max if daily else 1 %}
+<div class="statistics-bars">
+{% for label, count in daily.items() %}
+    <div class="statistics-bar-row"><span>{{ label }}</span><div class="statistics-bar"><i style="width:{{ (count / daily_max * 100)|round|int }}%"></i></div><b>{{ count }}</b></div>
+{% else %}<p>Данных пока нет.</p>{% endfor %}
+</div>
+<h2>Популярность часов</h2>
+{% set hourly_max = hourly.values()|max if hourly else 1 %}
+<div class="statistics-bars">
+{% for hour, count in hourly|dictsort %}
+    <div class="statistics-bar-row"><span>{{ "%02d:00"|format(hour) }}</span><div class="statistics-bar"><i style="width:{{ (count / hourly_max * 100)|round|int }}%"></i></div><b>{{ count }}</b></div>
+{% else %}<p>Данных пока нет.</p>{% endfor %}
+</div>

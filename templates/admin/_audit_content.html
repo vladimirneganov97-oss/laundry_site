@@ -1,0 +1,8 @@
+<div class="table-wrap"><table>
+    <thead><tr><th>Дата</th><th>Действие</th><th>Подробности</th></tr></thead>
+    <tbody>
+    {% for entry in logs %}
+        <tr><td>{{ entry.CreatedAt|localtime }}</td><td>Администратор · {{ entry.Action }}</td><td>{{ entry.Details }}</td></tr>
+    {% else %}<tr><td colspan="3">Записей пока нет.</td></tr>{% endfor %}
+    </tbody>
+</table></div>

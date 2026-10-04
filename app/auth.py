@@ -10,7 +10,7 @@ from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import PersistentLogin, User
+from app.models import PersistentLogin, User, WardenAccount
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -47,6 +47,26 @@ def reservation_text(user: User) -> str:
 
 def is_admin(request: Request) -> bool:
     return request.session.get("Admin") == "true"
+
+
+def clear_user_session(request: Request) -> None:
+    for key in ("UserId", "UserPublicId", "UserName", "Room"):
+        request.session.pop(key, None)
+
+
+def clear_warden_session(request: Request) -> None:
+    for key in ("WardenId", "WardenPublicId", "WardenName", "WardenMessage"):
+        request.session.pop(key, None)
+
+
+def get_session_warden_id(request: Request) -> int | None:
+    value = request.session.get("WardenId")
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def get_session_user_id(request: Request) -> int | None:
@@ -122,8 +142,21 @@ async def validate_session_user(request: Request, db: AsyncSession) -> None:
 
     user = await db.get(User, user_id)
     session_public_id = request.session.get("UserPublicId")
-    if user is None or user.PublicId != session_public_id:
-        request.session.clear()
+    if user is None or user.PublicId != session_public_id or user.IsBlocked:
+        clear_user_session(request)
+
+
+async def validate_session_warden(request: Request, db: AsyncSession) -> None:
+    warden_id = get_session_warden_id(request)
+    if warden_id is None:
+        return
+    warden = await db.get(WardenAccount, warden_id)
+    if (
+        warden is None
+        or warden.PublicId != request.session.get("WardenPublicId")
+        or warden.IsBlocked
+    ):
+        clear_warden_session(request)
 
 
 def flash(request: Request, key: str, value: Any) -> None:
