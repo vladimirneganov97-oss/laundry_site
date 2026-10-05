@@ -128,7 +128,7 @@ async def index(
         )
     ).scalars().all() if slot_ids else []
     bookings_by_occurrence = {
-        (booking.SlotId, booking.WeekStart): booking for booking in current_bookings
+        (booking.SlotId, booking.WeekStart.date()): booking for booking in current_bookings
     }
     waitlist_counts = {
         (row[0], row[1]): row[2]
@@ -244,6 +244,8 @@ async def index(
             "bookable_occurrences": bookable_occurrences,
             "past_occurrences": past_occurrences,
             "today": server_now.date(),
+            "server_now": server_now.replace(tzinfo=None),
+            "cancellation_deadline": (server_now + timedelta(hours=1)).replace(tzinfo=None),
             "booking_horizon_end_date": booking_horizon_end.date(),
             "selected_week_index": selected_week_index,
             "schedule_days": schedule_days,
@@ -471,6 +473,9 @@ async def cancel(request: Request, id: int = Form(...), db: AsyncSession = Depen
         )
     ).scalar_one_or_none()
     if booking is not None:
+        if (as_local(booking.StartsAt) or booking.StartsAt) < server_now + timedelta(hours=1):
+            flash(request, "Error", "Нельзя отменить бронирование, если до начала стирки осталось меньше часа.")
+            return RedirectResponse("/", status_code=303)
         booking.Status = "Отменено"
         booking.CancelledAt = server_now
         await notify_booking_change(db, booking, "Ваше бронирование отменено.", "Отмена")
@@ -505,6 +510,7 @@ async def history(
         except ValueError:
             date_to = None
     rows = (await db.execute(query.order_by(Booking.StartsAt.desc()))).all()
+    server_now = now_local()
     return templates.TemplateResponse(
         "home/history.html",
         {
@@ -512,7 +518,8 @@ async def history(
             "rows": rows,
             "date_from": date_from,
             "date_to": date_to,
-            "server_now": now_local().replace(tzinfo=None),
+            "server_now": server_now.replace(tzinfo=None),
+            "cancellation_deadline": (server_now + timedelta(hours=1)).replace(tzinfo=None),
         },
     )
 
@@ -530,6 +537,9 @@ async def cancel_future_booking(request: Request, id: int = Form(...), db: Async
         and booking.Status == "Забронировано"
         and (as_local(booking.StartsAt) or booking.StartsAt) > now
     ):
+        if (as_local(booking.StartsAt) or booking.StartsAt) < now + timedelta(hours=1):
+            flash(request, "Error", "Нельзя отменить бронирование, если до начала стирки осталось меньше часа.")
+            return RedirectResponse("/", status_code=303)
         booking.Status = "Отменено"
         booking.CancelledAt = now
         await notify_booking_change(db, booking, "Ваше будущее бронирование отменено.", "Отмена")

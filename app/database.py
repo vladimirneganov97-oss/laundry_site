@@ -35,8 +35,34 @@ async def init_db() -> None:
             await conn.exec_driver_sql("ALTER TABLE Announcements ADD COLUMN Category VARCHAR(32) NOT NULL DEFAULT 'Другое'")
         user_columns = await conn.exec_driver_sql("PRAGMA table_info('Users')")
         existing_user_columns = {row[1] for row in user_columns.fetchall()}
+        if "Login" not in existing_user_columns:
+            await conn.exec_driver_sql(
+                "ALTER TABLE Users ADD COLUMN Login VARCHAR(32) COLLATE NOCASE NOT NULL DEFAULT ''"
+            )
+        await conn.exec_driver_sql(
+            "UPDATE Users SET Login = PublicId WHERE Login = ''"
+        )
+        await conn.exec_driver_sql(
+            'CREATE UNIQUE INDEX IF NOT EXISTS "ix_Users_Login" ON "Users" ("Login" COLLATE NOCASE)'
+        )
         if "IsBlocked" not in existing_user_columns:
             await conn.exec_driver_sql("ALTER TABLE Users ADD COLUMN IsBlocked BOOLEAN NOT NULL DEFAULT 0")
+        registration_columns = await conn.exec_driver_sql("PRAGMA table_info('RegistrationRequests')")
+        existing_registration_columns = {row[1] for row in registration_columns.fetchall()}
+        if "Login" not in existing_registration_columns:
+            await conn.exec_driver_sql(
+                "ALTER TABLE RegistrationRequests ADD COLUMN Login VARCHAR(32) COLLATE NOCASE NOT NULL DEFAULT ''"
+            )
+        await conn.exec_driver_sql(
+            "UPDATE RegistrationRequests SET Login = 'legacy-' || Id WHERE Login = ''"
+        )
+        await conn.exec_driver_sql(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS "uq_registration_requests_pending_login"
+            ON "RegistrationRequests" ("Login" COLLATE NOCASE)
+            WHERE "Status" = 'Pending'
+            """
+        )
         warden_columns = await conn.exec_driver_sql("PRAGMA table_info('WardenAccounts')")
         existing_warden_columns = {row[1] for row in warden_columns.fetchall()}
         if "IsUniversal" not in existing_warden_columns:
@@ -64,6 +90,32 @@ async def init_db() -> None:
             columns = {row[1] for row in result.fetchall()}
             if column not in columns:
                 await conn.exec_driver_sql(f'ALTER TABLE "{table}" ADD COLUMN "{column}" {definition}')
+        await conn.exec_driver_sql(
+            """
+            DELETE FROM Machines
+            WHERE LaundryRoomId IS NOT NULL
+              AND Id NOT IN (
+                  SELECT MIN(Id)
+                  FROM Machines
+                  WHERE LaundryRoomId IS NOT NULL
+                  GROUP BY LaundryRoomId
+              )
+            """
+        )
+        await conn.exec_driver_sql(
+            """
+            DELETE FROM Machines
+            WHERE LaundryRoomId IS NULL
+              AND (Id <> 1 OR EXISTS (
+                  SELECT 1 FROM Machines AS assigned
+                  WHERE assigned.LaundryRoomId = 1
+              ))
+            """
+        )
+        await conn.exec_driver_sql(
+            'CREATE UNIQUE INDEX IF NOT EXISTS "uq_machines_laundry_room" '
+            'ON "Machines" ("LaundryRoomId")'
+        )
         registration_columns = await conn.exec_driver_sql("PRAGMA table_info('RegistrationRequests')")
         existing_registration_columns = {row[1] for row in registration_columns.fetchall()}
         if "WardenId" not in existing_registration_columns:
@@ -223,11 +275,22 @@ async def init_db() -> None:
         if had_default_room and has_room_slots is None:
             for table in ("Users", "WashSlots", "RegistrationKeys", "RegistrationRequests", "Announcements"):
                 await session.execute(text(f'UPDATE "{table}" SET "LaundryRoomId" = 1 WHERE "LaundryRoomId" IS NULL'))
-        machine = await session.get(Machine, 1)
+        machine = await session.scalar(
+            select(Machine).where(Machine.LaundryRoomId == 1).limit(1)
+        )
         if machine is None:
-            session.add(Machine(Id=1, LaundryRoomId=1, Name="Машина №1", Status="Свободна", UpdatedAt=datetime.now()))
-        else:
-            machine.LaundryRoomId = machine.LaundryRoomId or 1
+            legacy_machine = await session.get(Machine, 1)
+            if legacy_machine is not None and legacy_machine.LaundryRoomId is None:
+                legacy_machine.LaundryRoomId = 1
+            else:
+                session.add(
+                    Machine(
+                        LaundryRoomId=1,
+                        Name="Машина №1",
+                        Status="Свободна",
+                        UpdatedAt=datetime.now(),
+                    )
+                )
         slots = (
             await session.execute(
                 select(WashSlot).where(

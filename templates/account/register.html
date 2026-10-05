@@ -13,6 +13,7 @@
             <div class="error">{% for e in errors %}<div>{{ e }}</div>{% endfor %}</div>
         {% endif %}
         <fieldset id="registration-fields" style="border:0;margin:0;padding:0" {% if registration_blocked|default(false) %}disabled{% endif %}>
+        <label>Логин<input name="login" required minlength="3" maxlength="32" autocomplete="username" pattern="[A-Za-z0-9_.-]{3,32}" title="От 3 до 32 латинских букв, цифр или символов . _ -" /></label>
         <label>Имя<input name="firstName" required maxlength="30" autocomplete="given-name" pattern="[A-Za-zА-Яа-яЁё]+" title="Только буквы, максимум 30 символов" data-letters-only /></label>
         <label>Фамилия<input name="lastName" required maxlength="30" autocomplete="family-name" pattern="[A-Za-zА-Яа-яЁё]+" title="Только буквы, максимум 30 символов" data-letters-only /></label>
         <label>Этаж постирочной

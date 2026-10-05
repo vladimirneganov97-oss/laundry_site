@@ -4,12 +4,44 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>График стирки</title>
-    <link rel="stylesheet" href="/static/css/site.css?v=20261005-admin-key-align" />
+    <link rel="stylesheet" href="/static/css/site.css?v=20261005-profile-menu-nav-overlay" />
 </head>
 <body data-admin-active-tab="{{ active_admin_tab|default('') }}" data-warden-active-tab="{{ active_warden_tab|default('') }}" data-chat-key="{{ request.session.get('PendingRegistrationKey') or '' }}">
 <header>
     <div class="wrap nav">
-        <a class="brand" href="/">🧺 Постирочная</a>
+        <div class="brand-area">
+            <a class="brand" href="/">🧺 Постирочная</a>
+            {% if request.session.get('UserId') %}
+                <div class="account-menu">
+                    <button
+                        type="button"
+                        class="account-menu-trigger"
+                        id="account-menu-trigger"
+                        aria-label="Открыть меню профиля"
+                        aria-haspopup="true"
+                        aria-expanded="false"
+                        aria-controls="account-menu-panel"
+                        title="Меню профиля"
+                    >
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <circle cx="12" cy="9" r="3"></circle>
+                            <path d="M6.5 19a5.5 5.5 0 0 1 11 0"></path>
+                        </svg>
+                    </button>
+                    <div class="account-menu-panel" id="account-menu-panel" hidden>
+                        <strong>{{ request.session.get('UserName') }}</strong>
+                        {% if request.session.get('UserLogin') %}
+                            <span class="account-menu-login">@{{ request.session.get('UserLogin') }}</span>
+                        {% endif %}
+                        <span class="account-menu-login">Комната {{ request.session.get('Room') }} · ID {{ request.session.get('UserPublicId') }}</span>
+                        <a href="/Account/Profile">Профиль</a>
+                        <a href="/Home/History">История стирок</a>
+                        <a href="/Account/Logout">Выйти</a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
         <nav>
             <a href="/">График</a>
             {% if request.session.get('UserId') or request.session.get('PendingRegistrationKey') %}
@@ -18,9 +50,6 @@
             {% if request.session.get('WardenName') %}
                 <a href="/Warden">{{ request.session.get('WardenName') }} · кабинет старосты</a>
                 <a href="/Warden/Logout">Выйти</a>
-            {% elif request.session.get('UserName') %}
-                <span class="user">{{ request.session.get('UserName') }} · комната {{ request.session.get('Room') }} · ID {{ request.session.get('UserPublicId') }}</span>
-                <a href="/Account/Logout">Выйти</a>
             {% else %}
                 <a href="/Account/Login">Войти</a><a href="/Account/Register">Регистрация</a>
             {% endif %}
@@ -38,6 +67,6 @@
     <div id="side-drawer-content" class="side-drawer-content"></div>
 </aside>
 <footer class="security-footer">Пароли хранятся в базе в виде хэшей. Подключение по HTTP в локальной сети не шифрует передаваемые данные; для шифрования трафика нужен HTTPS.</footer>
-<script src="/static/js/site.js?v=20261005-laundry-room-numbers"></script>
+<script src="/static/js/site.js?v=20261005-mobile-profile-tabs"></script>
 </body>
 </html>

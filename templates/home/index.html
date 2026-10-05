@@ -1,5 +1,6 @@
 {% extends "layout.html" %}
 {% block content %}
+<div class="home-intro">
 <div class="hero">
     <div>
         <h1>График стирки</h1>
@@ -80,6 +81,7 @@
 {% if machine %}
     <div class="notice"><strong>{{ selected_room.Name }} · Машина №1 · {{ machine.Status }}</strong>{% if machine.Status in ["Неисправна", "На обслуживании"] %} — временно недоступна для новых бронирований.{% endif %}</div>
 {% endif %}
+</div>
 
 <div class="home-columns">
 <div class="schedule">
@@ -92,17 +94,21 @@
         <h2>{{ day }} <span class="schedule-day-date">{{ schedule_date.strftime("%d.%m.%Y") }}</span></h2>
         {% for slot in day_slots %}
             <div class="slot">
-                {% set booking = bookings_by_occurrence.get((slot.Id, booking_week)) %}
+                {% set booking = bookings_by_occurrence.get((slot.Id, booking_week.date())) %}
                 <div><b>Машина №1 · {{ slot.Time }}</b></div>
                 {% if slot.Status in ["Неисправна", "На обслуживании"] %}
                     <span class="slot-status status-blocked">{{ slot.Status }}. Машина временно недоступна.</span>
                 {% elif booking %}
                     <span class="slot-status busy">Забронировано</span>
                     {% if booking.UserId == request.session.get('UserId') %}
-                        <form action="/Home/History/Cancel" method="post">
-                            <input type="hidden" name="id" value="{{ booking.Id }}" />
-                            <button class="small danger" type="submit">Отменить</button>
-                        </form>
+                        {% if booking.StartsAt >= cancellation_deadline %}
+                            <form action="/Home/History/Cancel" method="post">
+                                <input type="hidden" name="id" value="{{ booking.Id }}" />
+                                <button class="small danger" type="submit">Отменить</button>
+                            </form>
+                        {% else %}
+                            <span class="muted">Отмена недоступна менее чем за час до стирки.</span>
+                        {% endif %}
                     {% elif user_name and can_book_selected_room and (slot.Id, schedule_date) in bookable_occurrences %}
                         <span class="muted">В очереди: {{ waitlist_counts.get((slot.Id, booking_week), 0) }}</span>
                         <form action="/Home/Waitlist" method="post">
@@ -142,10 +148,15 @@
                 {% else %}
                     <span class="slot-status busy">Занято: {{ slot.ReservedBy }}</span>
                     {% if slot.ReservedByUserId == request.session.get('UserId') %}
-                        <form action="/Home/Cancel" method="post">
-                            <input type="hidden" name="id" value="{{ slot.Id }}" />
-                            <button class="small danger">Освободить</button>
-                        </form>
+                        {% set current_booking = bookings_by_occurrence.get((slot.Id, booking_week.date())) %}
+                        {% if current_booking and current_booking.StartsAt >= cancellation_deadline %}
+                            <form action="/Home/Cancel" method="post">
+                                <input type="hidden" name="id" value="{{ slot.Id }}" />
+                                <button class="small danger">Отменить</button>
+                            </form>
+                        {% else %}
+                            <span class="muted">Отмена недоступна менее чем за час до стирки или после её начала.</span>
+                        {% endif %}
                     {% endif %}
                 {% endif %}
             </div>

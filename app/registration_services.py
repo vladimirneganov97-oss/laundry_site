@@ -52,6 +52,12 @@ async def approve_registration(
     if registration.RegistrationKey is None:
         return None, "Ключ регистрации не найден."
 
+    login_exists = await db.scalar(
+        select(User.Id).where(func.lower(User.Login) == registration.Login.lower()).limit(1)
+    )
+    if login_exists is not None:
+        return None, "Логин из заявки уже занят. Отклоните заявку и попросите пользователя зарегистрироваться с другим логином."
+
     existing = (
         await db.execute(
             select(User).where(
@@ -74,6 +80,7 @@ async def approve_registration(
 
     user = User(
         PublicId=public_id,
+        Login=registration.Login,
         FirstName=registration.FirstName,
         LastName=registration.LastName,
         RoomNumber=registration.RoomNumber,
@@ -107,8 +114,8 @@ async def approve_registration(
             RegistrationRequestId=registration.Id,
             SenderType="System",
             Message=(
-                f"{reviewer} подтвердил регистрацию. Ваш ID аккаунта: {user.PublicId}. "
-                "Теперь вы можете войти в аккаунт."
+                f"{reviewer} подтвердил регистрацию. Ваш логин: {user.Login}; ID аккаунта: {user.PublicId}. "
+                "Теперь вы можете войти по логину."
             ),
             IsRead=False,
             CreatedAt=datetime.utcnow(),

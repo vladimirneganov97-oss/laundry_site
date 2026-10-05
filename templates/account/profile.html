@@ -1,0 +1,17 @@
+{% extends "layout.html" %}
+{% block content %}
+<section class="card form-card">
+    <h1>Профиль</h1>
+    <p>Измените логин, имя или фамилию. Логин должен быть уникальным.</p>
+    {% if status %}<div class="notice">{{ status }}</div>{% endif %}
+    {% if errors %}<div class="error">{% for error in errors %}<div>{{ error }}</div>{% endfor %}</div>{% endif %}
+    <form action="/Account/Profile" method="post">
+        <label>Логин<input name="login" value="{{ form_login|default(user.Login) }}" required minlength="3" maxlength="32" autocomplete="username" pattern="[A-Za-z0-9_.-]{3,32}" title="От 3 до 32 латинских букв, цифр или символов . _ -" /></label>
+        <label>Имя<input name="firstName" value="{{ form_first_name|default(user.FirstName) }}" required maxlength="30" autocomplete="given-name" pattern="[A-Za-zА-Яа-яЁё]+" title="Только буквы, максимум 30 символов" data-letters-only /></label>
+        <label>Фамилия<input name="lastName" value="{{ form_last_name|default(user.LastName) }}" required maxlength="30" autocomplete="family-name" pattern="[A-Za-zА-Яа-яЁё]+" title="Только буквы, максимум 30 символов" data-letters-only /></label>
+        <label>Номер комнаты<input value="{{ user.RoomNumber }}" disabled /></label>
+        <button class="button" type="submit">Сохранить изменения</button>
+    </form>
+    <p><a href="/">Вернуться к расписанию</a></p>
+</section>
+{% endblock %}

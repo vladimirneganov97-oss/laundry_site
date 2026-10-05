@@ -421,7 +421,9 @@ async def admin_index(
             "cancellations_count": await db.scalar(
                 select(func.count(Booking.Id)).where(Booking.Status == "Отменено")
             ) or 0,
-            "machines_count": await db.scalar(select(func.count(Machine.Id))) or 0,
+            "machines_count": await db.scalar(
+                select(func.count(func.distinct(Machine.LaundryRoomId))).where(Machine.LaundryRoomId.is_not(None))
+            ) or 0,
             "daily": statistics_daily,
             "hourly": statistics_hourly,
             "registration_keys": registration_keys,
@@ -1210,7 +1212,9 @@ async def admin_statistics(request: Request, db: AsyncSession = Depends(get_db))
         "bookings_count": await db.scalar(select(func.count(Booking.Id))) or 0,
         "today_count": await db.scalar(select(func.count(Booking.Id)).where(func.date(Booking.StartsAt) == now.date().isoformat())) or 0,
         "cancellations_count": await db.scalar(select(func.count(Booking.Id)).where(Booking.Status == "Отменено")) or 0,
-        "machines_count": await db.scalar(select(func.count(Machine.Id))) or 0,
+        "machines_count": await db.scalar(
+            select(func.count(func.distinct(Machine.LaundryRoomId))).where(Machine.LaundryRoomId.is_not(None))
+        ) or 0,
         "daily": daily,
         "hourly": hourly,
     }
@@ -1669,14 +1673,17 @@ async def approve_registration(request: Request, id: int = Form(...), db: AsyncS
 
     user, error = await approve_registration_request(db, req, "Администратор")
     if error or user is None:
-        if error == "Аккаунт с такими данными уже существует.":
-            reject_registration_request(db, req, "Администратор", "Заявка отклонена: аккаунт с такими данными уже существует.")
+        if error in {
+            "Аккаунт с такими данными уже существует.",
+            "Логин из заявки уже занят. Отклоните заявку и попросите пользователя зарегистрироваться с другим логином.",
+        }:
+            reject_registration_request(db, req, "Администратор", f"Заявка отклонена: {error}")
         await db.commit()
         flash(request, "AdminMessage", error or "Не удалось создать аккаунт по заявке.")
         return RedirectResponse("/Admin?tab=requests", status_code=303)
 
     await db.commit()
-    flash(request, "AdminMessage", f"Регистрация подтверждена. Создан ID аккаунта: {user.PublicId}.")
+    flash(request, "AdminMessage", f"Регистрация подтверждена. Логин: {user.Login}; ID аккаунта: {user.PublicId}.")
     return RedirectResponse("/Admin?tab=requests", status_code=303)
 
 

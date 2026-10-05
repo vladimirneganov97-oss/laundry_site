@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime, timedelta
 from math import ceil
 
@@ -7,6 +8,7 @@ from fastapi import APIRouter, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -44,6 +46,22 @@ LOGIN_LOCKOUT = timedelta(minutes=15)
 
 def _client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
+
+
+async def _login_is_taken(db: AsyncSession, login: str, *, exclude_user_id: int | None = None) -> bool:
+    user_query = select(User.Id).where(func.lower(User.Login) == login.lower())
+    if exclude_user_id is not None:
+        user_query = user_query.where(User.Id != exclude_user_id)
+    if await db.scalar(user_query.limit(1)) is not None:
+        return True
+    return await db.scalar(
+        select(RegistrationRequest.Id)
+        .where(
+            func.lower(RegistrationRequest.Login) == login.lower(),
+            RegistrationRequest.Status == "Pending",
+        )
+        .limit(1)
+    ) is not None
 
 
 async def _registration_context(
@@ -182,6 +200,7 @@ async def register_get(request: Request, db: AsyncSession = Depends(get_db)):
 @router.post("/Register", response_class=HTMLResponse)
 async def register_post(
     request: Request,
+    login: str = Form(""),
     firstName: str = Form(""),
     lastName: str = Form(""),
     roomNumber: str = Form(""),
@@ -222,14 +241,17 @@ async def register_post(
 
     first_name = (firstName or "").strip()
     last_name = (lastName or "").strip()
+    login_name = (login or "").strip()
     room_number = (roomNumber or "").strip()
     registration_key = (registrationKey or "").strip().upper()
     password = password or ""
     password_confirm = passwordConfirm or ""
     errors: list[str] = []
 
-    if not first_name or not last_name or not room_number or len(password) < 8 or not registration_key:
+    if not login_name or not first_name or not last_name or not room_number or len(password) < 8 or not registration_key:
         errors.append("Заполните все поля. Пароль должен содержать минимум 8 символов.")
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{3,32}", login_name):
+        errors.append("Логин должен содержать от 3 до 32 латинских букв, цифр или символов . _ -.")
     if len(first_name) > 30 or len(last_name) > 30:
         errors.append("Имя и фамилия должны содержать не более 30 символов.")
     if not is_letters_only(first_name):
@@ -271,6 +293,8 @@ async def register_post(
             errors.append("Администратора можно выбрать, только если к постирочной не прикреплён староста.")
         elif wardenId != 0 and not selected_warden_is_valid:
             errors.append("Выбранный староста не обслуживает эту постирочную.")
+    if login_name and await _login_is_taken(db, login_name):
+        errors.append("Этот логин уже занят. Выберите другой.")
     if errors:
         return templates.TemplateResponse(
             "account/register.html",
@@ -363,6 +387,7 @@ async def register_post(
         )
 
     request_row = RegistrationRequest(
+        Login=login_name,
         FirstName=first_name,
         LastName=last_name,
         RoomNumber=room_number,
@@ -374,7 +399,20 @@ async def register_post(
         CreatedAt=datetime.utcnow(),
     )
     db.add(request_row)
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError:
+        await db.rollback()
+        if await _login_is_taken(db, login_name):
+            return templates.TemplateResponse(
+                "account/register.html",
+                await _registration_context(
+                    request,
+                    db,
+                    errors=["Этот логин уже занят. Выберите другой."],
+                ),
+            )
+        raise
 
     key.IsUsed = True
     key.UsedByRequestId = request_row.Id
@@ -391,7 +429,20 @@ async def register_post(
             CreatedAt=datetime.utcnow(),
         )
     )
-    await db.commit()
+    try:
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        if await _login_is_taken(db, login_name):
+            return templates.TemplateResponse(
+                "account/register.html",
+                await _registration_context(
+                    request,
+                    db,
+                    errors=["Этот логин уже занят. Выберите другой."],
+                ),
+            )
+        raise
 
     request.session["PendingRegistrationKey"] = key.Key
     flash(
@@ -450,7 +501,7 @@ async def check_registration_status(
         status = (
             "Регистрация подтверждена, но аккаунт не найден."
             if user is None
-            else f"Регистрация подтверждена. Ваш ID аккаунта: {user.PublicId}"
+            else f"Регистрация подтверждена. Ваш логин: {user.Login}; ID аккаунта: {user.PublicId}."
         )
 
     return templates.TemplateResponse(
@@ -460,13 +511,13 @@ async def check_registration_status(
 
 
 @router.get("/Login", response_class=HTMLResponse)
-async def login_get(request: Request, publicId: str = ""):
+async def login_get(request: Request, login: str = ""):
     return templates.TemplateResponse(
         "account/login.html",
         {
             "request": request,
             "errors": [],
-            "public_id": publicId.strip(),
+            "login": login.strip(),
             "registration_pending": pop_flash(request, "RegistrationPending"),
             "open_registration_chat": bool(pop_flash(request, "OpenRegistrationChat")),
         },
@@ -476,11 +527,11 @@ async def login_get(request: Request, publicId: str = ""):
 @router.post("/Login", response_class=HTMLResponse)
 async def login_post(
     request: Request,
-    publicId: str = Form(""),
+    login: str = Form(""),
     password: str = Form(""),
     db: AsyncSession = Depends(get_db),
 ):
-    public_id = (publicId or "").strip()
+    login_name = (login or "").strip()
     password = password or ""
     client_ip = _client_ip(request)
     login_attempt = await _get_login_attempt(db, client_ip)
@@ -491,25 +542,25 @@ async def login_post(
             {
                 "request": request,
                 "errors": [f"Слишком много неверных попыток. Повторите через {ceil(seconds / 60)} мин."],
-                "public_id": public_id,
+                "login": login_name,
                 "registration_pending": None,
                 "open_registration_chat": False,
             },
         )
-    if not public_id or not password:
+    if not login_name or not password:
         return templates.TemplateResponse(
             "account/login.html",
             {
                 "request": request,
-                "errors": ["Введите ID аккаунта и пароль."],
-                "public_id": public_id,
+                "errors": ["Введите логин и пароль."],
+                "login": login_name,
                 "registration_pending": None,
                 "open_registration_chat": False,
             },
         )
 
     user = (
-        await db.execute(select(User).where(User.PublicId == public_id))
+        await db.execute(select(User).where(func.lower(User.Login) == login_name.lower()))
     ).scalar_one_or_none()
     if user is not None and user.IsBlocked:
         return templates.TemplateResponse(
@@ -517,7 +568,7 @@ async def login_post(
             {
                 "request": request,
                 "errors": ["Этот аккаунт заблокирован администратором."],
-                "public_id": public_id,
+                "login": login_name,
                 "registration_pending": None,
                 "open_registration_chat": False,
             },
@@ -527,14 +578,14 @@ async def login_post(
         error = (
             "Слишком много неверных попыток. Вход заблокирован на 15 минут."
             if attempt.BlockedUntil is not None
-            else f"Неверный ID или пароль. Осталось попыток: {5 - attempt.FailedAttempts}."
+            else f"Неверный логин или пароль. Осталось попыток: {5 - attempt.FailedAttempts}."
         )
         return templates.TemplateResponse(
             "account/login.html",
             {
                 "request": request,
                 "errors": [error],
-                "public_id": public_id,
+                "login": login_name,
                 "registration_pending": None,
                 "open_registration_chat": False,
             },
@@ -547,6 +598,76 @@ async def login_post(
     redirect = RedirectResponse("/", status_code=303)
     await sign_in(request, redirect, db, user)
     return redirect
+
+
+@router.get("/Profile", response_class=HTMLResponse)
+async def profile_get(request: Request, db: AsyncSession = Depends(get_db)):
+    user_id = request.session.get("UserId")
+    user = await db.get(User, user_id) if user_id is not None else None
+    if user is None:
+        return RedirectResponse("/Account/Login", status_code=303)
+    return templates.TemplateResponse(
+        "account/profile.html",
+        {"request": request, "user": user, "errors": [], "status": None},
+    )
+
+
+@router.post("/Profile", response_class=HTMLResponse)
+async def profile_post(
+    request: Request,
+    login: str = Form(""),
+    firstName: str = Form(""),
+    lastName: str = Form(""),
+    db: AsyncSession = Depends(get_db),
+):
+    user_id = request.session.get("UserId")
+    user = await db.get(User, user_id) if user_id is not None else None
+    if user is None:
+        return RedirectResponse("/Account/Login", status_code=303)
+
+    login_name = (login or "").strip()
+    first_name = (firstName or "").strip()
+    last_name = (lastName or "").strip()
+    errors: list[str] = []
+    if not re.fullmatch(r"[A-Za-z0-9_.-]{3,32}", login_name):
+        errors.append("Логин должен содержать от 3 до 32 латинских букв, цифр или символов . _ -.")
+    if not is_letters_only(first_name) or len(first_name) > 30:
+        errors.append("Имя может содержать только буквы и не более 30 символов.")
+    if not is_letters_only(last_name) or len(last_name) > 30:
+        errors.append("Фамилия может содержать только буквы и не более 30 символов.")
+    if login_name and await _login_is_taken(db, login_name, exclude_user_id=user.Id):
+        errors.append("Этот логин уже занят. Выберите другой.")
+
+    if not errors:
+        user.Login = login_name
+        user.FirstName = first_name
+        user.LastName = last_name
+        try:
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
+            errors.append("Этот логин уже занят. Выберите другой.")
+            user = await db.get(User, user_id)
+        else:
+            request.session["UserLogin"] = user.Login
+            request.session["UserName"] = f"{user.FirstName} {user.LastName}"
+            return templates.TemplateResponse(
+                "account/profile.html",
+                {"request": request, "user": user, "errors": [], "status": "Профиль сохранён."},
+            )
+
+    return templates.TemplateResponse(
+        "account/profile.html",
+        {
+            "request": request,
+            "user": user,
+            "errors": errors,
+            "status": None,
+            "form_login": login_name,
+            "form_first_name": first_name,
+            "form_last_name": last_name,
+        },
+    )
 
 
 @router.get("/Logout")

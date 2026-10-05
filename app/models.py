@@ -82,6 +82,7 @@ class User(Base):
 
     Id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     PublicId: Mapped[str] = mapped_column(String, nullable=False, default="", unique=True, index=True)
+    Login: Mapped[str] = mapped_column(String(32, collation="NOCASE"), nullable=False, default="", unique=True, index=True)
     FirstName: Mapped[str] = mapped_column(String, nullable=False, default="")
     LastName: Mapped[str] = mapped_column(String, nullable=False, default="")
     RoomNumber: Mapped[str] = mapped_column(String, nullable=False, default="")
@@ -201,8 +202,17 @@ class RegistrationKey(Base):
 
 class RegistrationRequest(Base):
     __tablename__ = "RegistrationRequests"
+    __table_args__ = (
+        Index(
+            "uq_registration_requests_pending_login",
+            "Login",
+            unique=True,
+            sqlite_where=text('"Status" = \'Pending\''),
+        ),
+    )
 
     Id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    Login: Mapped[str] = mapped_column(String(32, collation="NOCASE"), nullable=False, default="")
     FirstName: Mapped[str] = mapped_column(String, nullable=False)
     LastName: Mapped[str] = mapped_column(String, nullable=False)
     RoomNumber: Mapped[str] = mapped_column(String, nullable=False)

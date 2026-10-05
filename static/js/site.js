@@ -1,4 +1,55 @@
 document.addEventListener("DOMContentLoaded", () => {
+    const accountMenu = document.querySelector(".account-menu");
+    const accountMenuTrigger = document.getElementById("account-menu-trigger");
+    const accountMenuPanel = document.getElementById("account-menu-panel");
+    if (accountMenu && accountMenuTrigger && accountMenuPanel) {
+        const mobileProfileLayout = window.matchMedia("(max-width: 700px)");
+        const profileLink = accountMenuPanel.querySelector('a[href="/Account/Profile"]');
+        const syncProfileLayout = () => {
+            document.body.classList.toggle(
+                "profile-menu-open",
+                !mobileProfileLayout.matches && accountMenuTrigger.getAttribute("aria-expanded") === "true"
+            );
+            if (profileLink) {
+                if (mobileProfileLayout.matches) {
+                    profileLink.target = "_blank";
+                    profileLink.rel = "noopener noreferrer";
+                } else {
+                    profileLink.removeAttribute("target");
+                    profileLink.removeAttribute("rel");
+                }
+            }
+        };
+
+        const closeAccountMenu = (returnFocus = false) => {
+            accountMenuPanel.hidden = true;
+            accountMenuTrigger.setAttribute("aria-expanded", "false");
+            syncProfileLayout();
+            if (returnFocus) accountMenuTrigger.focus();
+        };
+
+        accountMenuTrigger.addEventListener("click", () => {
+            const isOpen = accountMenuTrigger.getAttribute("aria-expanded") === "true";
+            accountMenuPanel.hidden = isOpen;
+            accountMenuTrigger.setAttribute("aria-expanded", String(!isOpen));
+            syncProfileLayout();
+            if (!isOpen) accountMenuPanel.querySelector("a")?.focus();
+        });
+
+        mobileProfileLayout.addEventListener("change", syncProfileLayout);
+        syncProfileLayout();
+
+        document.addEventListener("click", event => {
+            if (!accountMenu.contains(event.target)) closeAccountMenu();
+        });
+
+        document.addEventListener("keydown", event => {
+            if (event.key === "Escape" && !accountMenuPanel.hidden) {
+                closeAccountMenu(true);
+            }
+        });
+    }
+
     const laundryRoomFloor = document.querySelector("[data-laundry-room-floor]");
     const laundryRoomNumber = document.querySelector("[data-laundry-room-number]");
     if (laundryRoomFloor && laundryRoomNumber) {

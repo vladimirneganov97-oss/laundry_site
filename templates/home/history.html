@@ -17,7 +17,7 @@
                     <td>{{ booking.StartsAt.strftime("%H:%M") }}–{{ booking.EndsAt.strftime("%H:%M") }}</td>
                     <td>№1</td>
                     <td>{{ booking.Status }}</td>
-                    <td>{% if booking.Status == "Забронировано" and booking.StartsAt > server_now %}<form action="/Home/History/Cancel" method="post"><input type="hidden" name="id" value="{{ booking.Id }}" /><button class="small danger" type="submit">Отменить</button></form>{% endif %}</td>
+                    <td>{% if booking.Status == "Забронировано" and booking.StartsAt >= cancellation_deadline %}<form action="/Home/History/Cancel" method="post"><input type="hidden" name="id" value="{{ booking.Id }}" /><button class="small danger" type="submit">Отменить</button></form>{% elif booking.Status == "Забронировано" and booking.StartsAt > server_now %}<span class="muted">Отмена недоступна менее чем за час до стирки.</span>{% endif %}</td>
                 </tr>
             {% else %}
                 <tr><td colspan="5">История пока пуста.</td></tr>

@@ -50,7 +50,7 @@ def is_admin(request: Request) -> bool:
 
 
 def clear_user_session(request: Request) -> None:
-    for key in ("UserId", "UserPublicId", "UserName", "Room"):
+    for key in ("UserId", "UserPublicId", "UserLogin", "UserName", "Room"):
         request.session.pop(key, None)
 
 
@@ -82,6 +82,7 @@ def get_session_user_id(request: Request) -> int | None:
 async def sign_in(request: Request, response: Response, db: AsyncSession, user: User) -> None:
     request.session["UserId"] = user.Id
     request.session["UserPublicId"] = user.PublicId
+    request.session["UserLogin"] = user.Login
     request.session["UserName"] = f"{user.FirstName} {user.LastName}"
     request.session["Room"] = user.RoomNumber
     request.session.pop("PendingRegistrationKey", None)
@@ -131,6 +132,7 @@ async def restore_remember_me(request: Request, db: AsyncSession) -> None:
 
     request.session["UserId"] = user.Id
     request.session["UserPublicId"] = user.PublicId
+    request.session["UserLogin"] = user.Login
     request.session["UserName"] = f"{user.FirstName} {user.LastName}"
     request.session["Room"] = user.RoomNumber
 

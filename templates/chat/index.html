@@ -42,7 +42,7 @@
                                 <code>{{ account_public_id }}</code>
                                 <div class="account-id-actions">
                                     <button type="button" class="small" data-copy-account-id="{{ account_public_id }}">Скопировать</button>
-                                    <a class="small white-button" href="/Account/Login?publicId={{ account_public_id }}">Вставить ID в поле входа</a>
+                                    <a class="small white-button" href="/Account/Login?login={{ account_login|urlencode }}">Войти по логину</a>
                                 </div>
                                 <span class="account-id-copy-status" aria-live="polite"></span>
                             </div>{{ message_parts[1] }}

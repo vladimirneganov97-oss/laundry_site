@@ -191,6 +191,7 @@
         <div class="booking-list">
         {% for registration in registrations %}
             <article class="booking-card">
+                <div class="booking-user"><span>Логин</span><strong>{{ registration.Login }}</strong></div>
                 <div class="booking-user"><span>Имя</span><strong>{{ registration.FirstName }} {{ registration.LastName }}</strong></div>
                 <div class="booking-user"><span>Комната</span><strong>{{ registration.RoomNumber }}</strong></div>
                 <div class="booking-user"><span>Постирочная</span><strong>{{ room_names.get(registration.LaundryRoomId, "—") }}</strong></div>

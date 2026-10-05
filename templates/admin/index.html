@@ -696,7 +696,8 @@
         {% endif %}
         {% for req in registration_requests %}
             <div class="booking-card">
-                <div class="booking-user"><span>Имя и фамилия</span><strong>{{ req.FirstName }} {{ req.LastName }}</strong></div>
+                <div class="booking-user"><span>Логин · имя и фамилия</span><strong>{{ req.Login }} · {{ req.FirstName }} {{ req.LastName }}</strong></div>
+                <div class="booking-user"><span>Логин</span><strong>{{ req.Login }}</strong></div>
                 <div class="booking-user"><span>Комната</span><strong>{{ req.RoomNumber }}</strong></div>
                 <div class="booking-user"><span>Постирочная / получатель</span><strong>{{ registration_room_names.get(req.LaundryRoomId, '—') }} · {{ registration_key_wardens.get(req.WardenId, 'Администратор' if not req.WardenId else '—') }}</strong></div>
                 <div class="booking-user"><span>Ключ</span><strong><code>{{ req.RegistrationKey.Key if req.RegistrationKey else "" }}</code></strong></div>

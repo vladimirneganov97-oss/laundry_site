@@ -48,10 +48,12 @@ async def find_request_by_key(db: AsyncSession, key: str) -> RegistrationRequest
 async def chat_index(request: Request, key: str | None = None, db: AsyncSession = Depends(get_db)):
     user_id = get_session_user_id(request)
     account_public_id = ""
+    account_login = ""
 
     if user_id is not None:
         current_user = await db.get(User, user_id)
         account_public_id = current_user.PublicId if current_user is not None else ""
+        account_login = current_user.Login if current_user is not None else ""
         approved_ids = (
             await db.execute(
                 select(RegistrationRequest.Id).where(RegistrationRequest.ApprovedUserId == user_id)
@@ -90,6 +92,7 @@ async def chat_index(request: Request, key: str | None = None, db: AsyncSession 
                 "reg_request": None,
                 "chat_warden": chat_warden,
                 "account_public_id": account_public_id,
+                "account_login": account_login,
             },
         )
 
@@ -106,6 +109,7 @@ async def chat_index(request: Request, key: str | None = None, db: AsyncSession 
                 "reg_request": None,
                 "chat_warden": None,
                 "account_public_id": account_public_id,
+                "account_login": account_login,
             },
         )
 
@@ -122,6 +126,7 @@ async def chat_index(request: Request, key: str | None = None, db: AsyncSession 
                 "reg_request": None,
                 "chat_warden": None,
                 "account_public_id": account_public_id,
+                "account_login": account_login,
             },
         )
 
@@ -143,6 +148,7 @@ async def chat_index(request: Request, key: str | None = None, db: AsyncSession 
         else None
     )
     account_public_id = approved_user.PublicId if approved_user is not None else ""
+    account_login = approved_user.Login if approved_user is not None else ""
     await mark_admin_messages_read(db, list(messages))
     return templates.TemplateResponse(
         "chat/index.html",
@@ -155,6 +161,7 @@ async def chat_index(request: Request, key: str | None = None, db: AsyncSession 
             "reg_request": reg_request,
             "chat_warden": chat_warden,
             "account_public_id": account_public_id,
+            "account_login": account_login,
         },
     )
 

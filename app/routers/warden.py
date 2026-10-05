@@ -1127,12 +1127,15 @@ async def approve(
         return _warden_redirect("requests")
     user, error = await approve_registration(db, registration, "Староста")
     if error or user is None:
-        if error == "Аккаунт с такими данными уже существует.":
+        if error in {
+            "Аккаунт с такими данными уже существует.",
+            "Логин из заявки уже занят. Отклоните заявку и попросите пользователя зарегистрироваться с другим логином.",
+        }:
             reject_registration(
                 db,
                 registration,
                 "Староста",
-                "Заявка отклонена: аккаунт с такими данными уже существует.",
+                f"Заявка отклонена: {error}",
             )
         request.session["WardenMessage"] = f"Не удалось подтвердить заявку: {error}"
     else:

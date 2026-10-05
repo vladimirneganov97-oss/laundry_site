@@ -3,7 +3,7 @@
 {% set pending_admin = registration_pending and 'администратору' in registration_pending %}
 <div class="card form-card">
     <h1>Войти в аккаунт</h1>
-    <p>Для входа используйте ваш ID аккаунта и пароль.</p>
+    <p>Для входа используйте свой логин и пароль.</p>
     {% if registration_pending %}
         <div class="notice">{{ registration_pending }}</div>
         <script>sessionStorage.removeItem("laundry.registration-form-draft.v1");</script>
@@ -12,7 +12,7 @@
         <div class="error">{% for e in errors %}<div>{{ e }}</div>{% endfor %}</div>
     {% endif %}
     <form action="/Account/Login" method="post">
-        <label>ID аккаунта<input name="publicId" value="{{ public_id|default('') }}" required maxlength="32" autocomplete="username" /></label>
+        <label>Логин<input name="login" value="{{ login|default('') }}" required maxlength="32" autocomplete="username" /></label>
         <label>Пароль<div class="password-field"><input id="login-password" name="password" type="password" required autocomplete="current-password" /><button type="button" class="password-toggle eye-toggle" data-password-toggle="login-password" aria-label="Показать пароль" aria-pressed="false" title="Показать пароль"><span class="eye-icon" aria-hidden="true">👁</span></button></div></label>
         <button class="button" type="submit">Войти</button>
     </form>
