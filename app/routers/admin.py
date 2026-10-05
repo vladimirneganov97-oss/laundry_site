@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import hmac
 import os
-from datetime import datetime, timedelta, timedelta
+from datetime import datetime, timedelta
+from math import ceil
 
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
@@ -1234,7 +1235,8 @@ async def admin_login_get(request: Request):
 @router.post("/Login", response_class=HTMLResponse)
 async def admin_login_post(request: Request, password: str = Form(""), db: AsyncSession = Depends(get_db)):
     client_ip = request.client.host if request.client else "unknown"
-    login_attempt = await db.get(LoginAttempt, client_ip)
+    attempt_ip = f"admin:{client_ip}"
+    login_attempt = await db.get(LoginAttempt, attempt_ip)
     now = datetime.now()
     if login_attempt is not None and login_attempt.BlockedUntil is not None and login_attempt.BlockedUntil > now:
         minutes = max(1, ceil((login_attempt.BlockedUntil - now).total_seconds() / 60))
@@ -1258,7 +1260,7 @@ async def admin_login_post(request: Request, password: str = Form(""), db: Async
         return RedirectResponse("/Admin", status_code=303)
 
     if login_attempt is None:
-        login_attempt = LoginAttempt(ClientIp=client_ip, FailedAttempts=0)
+        login_attempt = LoginAttempt(ClientIp=attempt_ip, FailedAttempts=0)
         db.add(login_attempt)
     login_attempt.FailedAttempts += 1
     if login_attempt.FailedAttempts >= 5:

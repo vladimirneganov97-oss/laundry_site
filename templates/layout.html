@@ -25,7 +25,6 @@
                 <a href="/Account/Login">Войти</a><a href="/Account/Register">Регистрация</a>
             {% endif %}
             {% if not request.session.get('WardenName') %}<a href="/Warden/Login">Вход старосты</a>{% endif %}
-            <a href="/Admin/Login">Админка</a>
         </nav>
     </div>
 </header>
